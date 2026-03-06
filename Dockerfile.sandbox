@@ -1,0 +1,31 @@
+# ============================================
+# AntiGravity - Dev-Agent Sandbox Dockerfile
+# コード実行用隔離環境（権限制限付き）
+# ============================================
+FROM python:3.12-slim
+
+# Node.js もインストール（JS実行用）
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nodejs \
+    npm \
+    && rm -rf /var/lib/apt/lists/*
+
+# 一般的なPythonライブラリをプリインストール
+RUN pip install --no-cache-dir \
+    requests \
+    beautifulsoup4 \
+    pandas \
+    numpy \
+    matplotlib \
+    Pillow \
+    flask \
+    fastapi \
+    uvicorn
+
+# セキュリティ: 非rootユーザーで実行
+RUN useradd -m -s /bin/bash sandbox
+USER sandbox
+WORKDIR /sandbox
+
+# デフォルトコマンド（実行時にオーバーライド）
+CMD ["python3", "--version"]

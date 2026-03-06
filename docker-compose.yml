@@ -1,0 +1,315 @@
+version: "3.9"
+
+x-common: &common
+  build:
+    context: .
+    dockerfile: Dockerfile
+  restart: always
+  env_file:
+    - .env
+  depends_on:
+    redis:
+      condition: service_healthy
+    postgres:
+      condition: service_healthy
+  networks:
+    - vsh-reflow-net
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  # ============================================
+  # Infrastructure Services
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vsh-reflow-net
+
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-vsh-reflow}
+      POSTGRES_USER: ${POSTGRES_USER:-vsh-reflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vsh-reflow}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - vsh-reflow-net
+
+  # ============================================
+  # Bot Hub (Discord / Telegram)
+  # ============================================
+  bot-hub:
+    <<: *common
+    container_name: vsh-reflow-bot-hub
+    command: python -m src.bot.discord_bot
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    ports:
+      - "${HEALTH_CHECK_PORT:-8080}:8080"
+
+  telegram-bot:
+    <<: *common
+    container_name: vsh-reflow-telegram-bot
+    command: python -m src.bot.telegram_bot
+
+  # ============================================
+  # AI Agent Workers
+  # ============================================
+  pm-agent:
+    <<: *common
+    container_name: vsh-reflow-pm-agent
+    command: celery -A src.workers.celery_app worker -Q pm_queue -n pm@%h --loglevel=info
+
+  growth-agent:
+    <<: *common
+    container_name: vsh-reflow-growth-agent
+    command: celery -A src.workers.celery_app worker -Q growth_queue -n growth@%h --loglevel=info
+
+  content-agent:
+    <<: *common
+    container_name: vsh-reflow-content-agent
+    command: celery -A src.workers.celery_app worker -Q content_queue -n content@%h --loglevel=info
+
+  design-agent:
+    <<: *common
+    container_name: vsh-reflow-design-agent
+    command: celery -A src.workers.celery_app worker -Q design_queue -n design@%h --loglevel=info
+    volumes:
+      - generated-images:/app/generated_images
+
+  analyst-agent:
+    <<: *common
+    container_name: vsh-reflow-analyst-agent
+    command: celery -A src.workers.celery_app worker -Q analyst_queue -n analyst@%h --loglevel=info
+
+  guard-agent:
+    <<: *common
+    container_name: vsh-reflow-guard-agent
+    command: celery -A src.workers.celery_app worker -Q guard_queue -n guard@%h --loglevel=info
+
+  pub-agent:
+    <<: *common
+    container_name: vsh-reflow-pub-agent
+    command: celery -A src.workers.celery_app worker -Q pub_queue -n pub@%h --loglevel=info
+
+  # ============================================
+  # Phase 2: AGI拡張 Agent Workers
+  # ============================================
+  browser-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.browser
+    container_name: vsh-reflow-browser-agent
+    restart: always
+    env_file:
+      - .env
+    command: celery -A src.workers.celery_app worker -Q browser_queue -n browser@%h --loglevel=info
+    volumes:
+      - screenshots:/app/screenshots
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - vsh-reflow-net
+
+  dev-agent:
+    <<: *common
+    container_name: vsh-reflow-dev-agent
+    command: celery -A src.workers.celery_app worker -Q dev_queue -n dev@%h --loglevel=info
+    volumes:
+      - projects:/app/projects
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - SANDBOX_IMAGE=vsh-reflow-sandbox
+
+  web-agent:
+    <<: *common
+    container_name: vsh-reflow-web-agent
+    command: celery -A src.workers.celery_app worker -Q web_queue -n web@%h --loglevel=info
+    volumes:
+      - projects:/app/projects
+
+  commerce-agent:
+    <<: *common
+    container_name: vsh-reflow-commerce-agent
+    command: celery -A src.workers.celery_app worker -Q commerce_queue -n commerce@%h --loglevel=info
+
+  deploy-agent:
+    <<: *common
+    container_name: vsh-reflow-deploy-agent
+    command: celery -A src.workers.celery_app worker -Q deploy_queue -n deploy@%h --loglevel=info
+    volumes:
+      - projects:/app/projects
+      - deployed:/app/deployed
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  # ============================================
+  # Phase 3: 統合拡張 Agent Workers
+  # ============================================
+  github-agent:
+    <<: *common
+    container_name: vsh-reflow-github-agent
+    command: celery -A src.workers.celery_app worker -Q github_queue -n github@%h --loglevel=info
+
+  email-agent:
+    <<: *common
+    container_name: vsh-reflow-email-agent
+    command: celery -A src.workers.celery_app worker -Q email_queue -n email@%h --loglevel=info
+
+  saas-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.browser
+    container_name: vsh-reflow-saas-agent
+    restart: always
+    env_file:
+      - .env
+    command: celery -A src.workers.celery_app worker -Q saas_queue -n saas@%h --loglevel=info
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - vsh-reflow-net
+
+  # ============================================
+  # Nginx (Webサイトホスティング)
+  # ============================================
+  nginx:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - deployed:/usr/share/nginx/html
+    networks:
+      - vsh-reflow-net
+
+  # ============================================
+  # Phase 4: 業務拡張 Agent Workers
+  # ============================================
+  seo-agent:
+    <<: *common
+    container_name: vsh-reflow-seo-agent
+    command: celery -A src.workers.celery_app worker -Q seo_queue -n seo@%h --loglevel=info
+
+  crm-agent:
+    <<: *common
+    container_name: vsh-reflow-crm-agent
+    command: celery -A src.workers.celery_app worker -Q crm_queue -n crm@%h --loglevel=info
+    volumes:
+      - crm-data:/app/crm_data
+
+  line-agent:
+    <<: *common
+    container_name: vsh-reflow-line-agent
+    command: celery -A src.workers.celery_app worker -Q line_queue -n line@%h --loglevel=info
+
+  schedule-agent:
+    <<: *common
+    container_name: vsh-reflow-schedule-agent
+    command: celery -A src.workers.celery_app worker -Q schedule_queue -n schedule@%h --loglevel=info
+
+  finance-agent:
+    <<: *common
+    container_name: vsh-reflow-finance-agent
+    command: celery -A src.workers.celery_app worker -Q finance_queue -n finance@%h --loglevel=info
+    volumes:
+      - finance-data:/app/finance_data
+
+  # ============================================
+  # Celery Beat (Scheduler)
+  # ============================================
+  celery-beat:
+    <<: *common
+    container_name: vsh-reflow-celery-beat
+    command: celery -A src.workers.celery_app beat --loglevel=info
+
+  # ============================================
+  # Monitoring
+  # ============================================
+  prometheus:
+    image: prom/prometheus:latest
+    restart: always
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    networks:
+      - vsh-reflow-net
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: always
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/system.json
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - prometheus
+    networks:
+      - vsh-reflow-net
+
+  # ============================================
+  # Cloudflare Tunnel
+  # ============================================
+  cloudflare-tunnel:
+    image: cloudflare/cloudflared:latest
+    restart: always
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    networks:
+      - vsh-reflow-net
+
+volumes:
+  redis-data:
+  postgres-data:
+  prometheus-data:
+  grafana-data:
+  generated-images:
+  screenshots:
+  projects:
+  deployed:
+  crm-data:
+  finance-data:
+
+
+networks:
+  vsh-reflow-net:
+    driver: bridge

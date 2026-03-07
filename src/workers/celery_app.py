@@ -234,4 +234,4 @@ try:
     for key in AGENT_MAP.keys():
         _get_agent(key)
 except Exception as e:
-    pass
+    logger.error(f"Failed to initialize agent presence on startup: {e}")

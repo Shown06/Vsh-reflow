@@ -35,7 +35,7 @@ class BaseAgent(ABC):
         try:
             import redis
             import json
-            r = redis.Redis.from_url(settings.redis.url)
+            r = redis.Redis.from_url(settings.redis.url, socket_timeout=5)
             data = {
                 "name": self.name,
                 "role": self.role.value if hasattr(self.role, "value") else str(self.role),
@@ -44,10 +44,10 @@ class BaseAgent(ABC):
                 "thought": thought,
                 "last_seen": datetime.now(timezone.utc).isoformat()
             }
-            r.set(f"vsh:agent:{self.name}", json.dumps(data), ex=600)
+            res = r.set(f"vsh:agent:{self.name}", json.dumps(data), ex=600)
+            self._logger.info(f"Presence reported (sync): {status} -> {res}")
         except Exception as e:
-            # ログレベルを下げてノイズを減らす
-            pass
+            self._logger.warning(f"Failed to report presence (sync): {e}")
 
     def _get_redis(self):
         """Redisクライアントを遅延初期化"""

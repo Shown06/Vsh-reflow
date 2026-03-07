@@ -14,6 +14,8 @@ x-common: &common
       condition: service_healthy
   networks:
     - vsh-reflow-net
+  volumes:
+    - ./src:/app/src
   logging:
     driver: json-file
     options:

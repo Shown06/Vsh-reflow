@@ -36,7 +36,7 @@ class CommandHandler:
     # -------------------------------------------
     # /idea [テーマ] - アイデア出し・企画立案を指示
     # -------------------------------------------
-    async def handle_idea(self, theme: str) -> dict[str, Any]:
+    async def handle_idea(self, theme: str, channel_id: str = None) -> dict[str, Any]:
         """アイデア出し・企画立案をGrowth-Agentに指示"""
         task_code = _generate_task_code()
 
@@ -50,6 +50,7 @@ class CommandHandler:
                 status=TaskStatus.PENDING,
                 priority=TaskPriority.NORMAL,
                 payload={"theme": theme},
+                discord_channel_id=channel_id,
             )
             session.add(task)
 
@@ -77,7 +78,7 @@ class CommandHandler:
     # -------------------------------------------
     # /research [キーワード] - 競合・トレンド調査
     # -------------------------------------------
-    async def handle_research(self, keyword: str) -> dict[str, Any]:
+    async def handle_research(self, keyword: str, channel_id: str = None) -> dict[str, Any]:
         """競合・トレンド調査をGrowth-Agentに指示"""
         task_code = _generate_task_code()
 
@@ -90,6 +91,7 @@ class CommandHandler:
                 assigned_agent=AgentRole.GROWTH,
                 status=TaskStatus.PENDING,
                 payload={"keyword": keyword},
+                discord_channel_id=channel_id,
             )
             session.add(task)
 
@@ -110,7 +112,7 @@ class CommandHandler:
     # -------------------------------------------
     # /draft [プラットフォーム] [テーマ] - 投稿下書き生成
     # -------------------------------------------
-    async def handle_draft(self, platform: str, theme: str) -> dict[str, Any]:
+    async def handle_draft(self, platform: str, theme: str, channel_id: str = None) -> dict[str, Any]:
         """投稿下書き生成をContent-Agentに指示"""
         task_code = _generate_task_code()
 
@@ -123,6 +125,7 @@ class CommandHandler:
                 assigned_agent=AgentRole.CONTENT,
                 status=TaskStatus.PENDING,
                 payload={"platform": platform, "theme": theme},
+                discord_channel_id=channel_id,
             )
             session.add(task)
 
@@ -144,7 +147,7 @@ class CommandHandler:
     # -------------------------------------------
     # /image [説明] - 画像生成を指示
     # -------------------------------------------
-    async def handle_image(self, description: str) -> dict[str, Any]:
+    async def handle_image(self, description: str, channel_id: str = None) -> dict[str, Any]:
         """画像生成をDesign-Agentに指示"""
         task_code = _generate_task_code()
 
@@ -157,6 +160,7 @@ class CommandHandler:
                 assigned_agent=AgentRole.DESIGN,
                 status=TaskStatus.PENDING,
                 payload={"description": description},
+                discord_channel_id=channel_id,
             )
             session.add(task)
 
@@ -291,7 +295,7 @@ class CommandHandler:
     # -------------------------------------------
     # /meeting [テーマ] - AI社内会議を招集
     # -------------------------------------------
-    async def handle_meeting(self, topic: str) -> dict[str, Any]:
+    async def handle_meeting(self, topic: str, channel_id: str = None) -> dict[str, Any]:
         """AI社内会議を招集"""
         meeting_code = _generate_meeting_code()
         participants = [
@@ -320,6 +324,18 @@ class CommandHandler:
                 ],
             )
             session.add(meeting)
+            
+            # 会議自体もタスクとして追跡するための管理タスクを作成
+            task = Task(
+                task_code=meeting_code,
+                title=f"AI会議: {topic}",
+                description=f"AI会議の進行: {topic}",
+                task_type="meeting",
+                assigned_agent=AgentRole.PM,
+                status=TaskStatus.PENDING,
+                discord_channel_id=str(channel_id) if channel_id else None,
+            )
+            session.add(task)
 
         # PM-Agentに会議進行を指示
         from src.workers.celery_app import dispatch_agent_task
@@ -363,7 +379,7 @@ class CommandHandler:
     # -------------------------------------------
     # /browse [URL] - Webページ閲覧・要約
     # -------------------------------------------
-    async def handle_browse(self, url: str) -> dict[str, Any]:
+    async def handle_browse(self, url: str, channel_id: str = None) -> dict[str, Any]:
         """Webページを閲覧して要約"""
         task_code = _generate_task_code()
 
@@ -376,6 +392,7 @@ class CommandHandler:
                 assigned_agent=AgentRole.GROWTH,
                 status=TaskStatus.PENDING,
                 payload={"url": url},
+                discord_channel_id=channel_id,
             )
             session.add(task)
 
@@ -431,7 +448,7 @@ class CommandHandler:
     # -------------------------------------------
     # /dev [指示] - コード生成・実行
     # -------------------------------------------
-    async def handle_dev(self, instruction: str, language: str = "python") -> dict[str, Any]:
+    async def handle_dev(self, instruction: str, language: str = "python", channel_id: str = None) -> dict[str, Any]:
         """コードを生成して実行"""
         task_code = _generate_task_code()
 
@@ -444,6 +461,7 @@ class CommandHandler:
                 assigned_agent=AgentRole.CONTENT,
                 status=TaskStatus.PENDING,
                 payload={"instruction": instruction, "language": language},
+                discord_channel_id=channel_id,
             )
             session.add(task)
 

@@ -66,6 +66,7 @@ async def on_ready():
 
     # 定期タスク開始
     approval_checker.start()
+    task_result_observer.start()
 
 
 @bot.event
@@ -84,7 +85,7 @@ async def cmd_idea(interaction: discord.Interaction, theme: str):
     logger.info(f"📥 [Discord] コマンド受信: /idea theme={theme} (user={interaction.user})")
     await interaction.response.defer()
     try:
-        result = await command_handler.handle_idea(theme)
+        result = await command_handler.handle_idea(theme, channel_id=str(interaction.channel_id))
         logger.info(f"✅ [Discord] /idea 処理完了: {result.get('task_code')}")
         await interaction.followup.send(result["message"])
     except Exception as e:
@@ -97,7 +98,7 @@ async def cmd_idea(interaction: discord.Interaction, theme: str):
 @app_commands.describe(keyword="調査キーワード")
 async def cmd_research(interaction: discord.Interaction, keyword: str):
     await interaction.response.defer()
-    result = await command_handler.handle_research(keyword)
+    result = await command_handler.handle_research(keyword, channel_id=str(interaction.channel_id))
     await interaction.followup.send(result["message"])
 
 
@@ -106,7 +107,7 @@ async def cmd_research(interaction: discord.Interaction, keyword: str):
 @app_commands.describe(platform="プラットフォーム (X, Instagram等)", theme="投稿テーマ")
 async def cmd_draft(interaction: discord.Interaction, platform: str, theme: str):
     await interaction.response.defer()
-    result = await command_handler.handle_draft(platform, theme)
+    result = await command_handler.handle_draft(platform, theme, channel_id=str(interaction.channel_id))
     await interaction.followup.send(result["message"])
 
 
@@ -115,7 +116,7 @@ async def cmd_draft(interaction: discord.Interaction, platform: str, theme: str)
 @app_commands.describe(description="画像の説明")
 async def cmd_image(interaction: discord.Interaction, description: str):
     await interaction.response.defer()
-    result = await command_handler.handle_image(description)
+    result = await command_handler.handle_image(description, channel_id=str(interaction.channel_id))
     await interaction.followup.send(result["message"])
 
 
@@ -263,6 +264,74 @@ async def approval_checker():
                 )
     except Exception as e:
         logger.error(f"承認チェッカーエラー: {e}")
+
+
+@tasks.loop(seconds=10)
+async def task_result_observer():
+    """タスク完了監視ループ (10秒おき)"""
+    try:
+        from sqlalchemy import select, update
+        from src.database import get_session
+        from src.models import Task, TaskStatus
+
+        async with get_session() as session:
+            # 完了または失敗した未通知のタスクを取得
+            stmt = select(Task).where(
+                Task.status.in_([TaskStatus.COMPLETED, TaskStatus.FAILED]),
+                Task.notified == False,
+                Task.discord_channel_id != None
+            ).order_by(Task.completed_at.asc())
+            
+            result = await session.execute(stmt)
+            tasks_to_notify = result.scalars().all()
+            
+            for task in tasks_to_notify:
+                try:
+                    channel_id = int(task.discord_channel_id)
+                    channel = bot.get_channel(channel_id)
+                    if not channel:
+                        # チャンネルがキャッシュにない場合はfetch
+                        try:
+                            channel = await bot.fetch_channel(channel_id)
+                        except:
+                            logger.warning(f"チャンネル {channel_id} が取得できません。スキップします。")
+                            task.notified = True # 取得不能なら諦める
+                            continue
+
+                    if task.status == TaskStatus.COMPLETED:
+                        # 結果の整形
+                        res_data = task.result or {}
+                        # content_agent等の結果は 'ideas' 'research_report' 等のキーに入っている
+                        main_text = ""
+                        for val in res_data.values():
+                            if isinstance(val, str):
+                                main_text += val + "\n"
+                        
+                        msg = (
+                            f"✅ **タスク完了報告**\n"
+                            f"📋 タスクID: `{task.task_code}`\n"
+                            f"🎯 タイトル: {task.title}\n"
+                            f"🤖 担当: {task.assigned_agent.value if hasattr(task.assigned_agent, 'value') else task.assigned_agent}\n"
+                            f"━━━━━━━━━━━━━━━━━━\n"
+                            f"{main_text[:1800]}" # Discord制限対策
+                        )
+                        await channel.send(msg)
+                    else:
+                        msg = (
+                            f"❌ **タスク失敗報告**\n"
+                            f"📋 タスクID: `{task.task_code}`\n"
+                            f"🎯 タイトル: {task.title}\n"
+                            f"⚠️ エラー: {task.error_message}"
+                        )
+                        await channel.send(msg)
+                    
+                    # 通知済みフラグを立てる
+                    task.notified = True
+                except Exception as ex:
+                    logger.error(f"タスク結果個席通知エラー ({task.task_code}): {ex}")
+            
+    except Exception as e:
+        logger.error(f"タスク結果監視ループ エラー: {e}")
 
 
 @approval_checker.before_loop

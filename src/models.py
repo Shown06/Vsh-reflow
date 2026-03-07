@@ -99,6 +99,8 @@ class Task(Base):
     result = Column(JSON, default=dict)
     error_message = Column(Text)
     require_approval = Column(Boolean, default=False)
+    notified = Column(Boolean, default=False)
+    discord_channel_id = Column(String(64))
 
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)

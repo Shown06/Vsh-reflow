@@ -1,12 +1,15 @@
 """
-Vsh-reflow - ヘルスチェックエンドポイント
-各コンテナの /health エンドポイント。
+Vsh-reflow - ヘルスチェック & API エンドポイント
+各コンテナの /health およびダッシュボード用 /api/agents。
 """
 
 import logging
 import time
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import json
+from datetime import datetime, timezone
+
+from src.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +17,7 @@ _start_time = time.time()
 
 
 class HealthHandler(BaseHTTPRequestHandler):
-    """シンプルなヘルスチェックHTTPハンドラー"""
+    """シンプルなヘルスチェック & エージェントAPIハンドラー"""
 
     def do_GET(self):
         if self.path == "/health":
@@ -28,33 +31,39 @@ class HealthHandler(BaseHTTPRequestHandler):
             # Redis接続チェック
             try:
                 import redis
-                from src.config import settings
-                r = redis.Redis(
-                    host=settings.redis.host,
-                    port=settings.redis.port,
-                    socket_timeout=2,
-                )
+                r = redis.Redis.from_url(settings.redis.url)
                 r.ping()
                 response["redis"] = "connected"
             except Exception:
                 response["redis"] = "disconnected"
 
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps(response).encode())
+            self._send_json(response)
+
+        elif self.path == "/api/agents":
+            # 全エージェントの状態をRedisから取得
+            response = {"agents": []}
+            try:
+                import redis
+                r = redis.Redis.from_url(settings.redis.url)
+                
+                # エージェントのキーをスキャン
+                keys = r.keys("vsh:agent:*")
+                for key in keys:
+                    data = r.get(key)
+                    if data:
+                        response["agents"].append(json.loads(data))
+                
+                status_code = 200
+            except Exception as e:
+                response = {"error": str(e)}
+                status_code = 500
+
+            self._send_json(response, status_code)
 
         elif self.path == "/metrics":
             # Prometheus メトリクス
             try:
-                from prometheus_client import (
-                    generate_latest,
-                    CONTENT_TYPE_LATEST,
-                    Counter,
-                    Gauge,
-                    Histogram,
-                )
-
+                from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
                 self.send_response(200)
                 self.send_header("Content-Type", CONTENT_TYPE_LATEST)
                 self.end_headers()
@@ -68,6 +77,14 @@ class HealthHandler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
 
+    def _send_json(self, data, status=200):
+        """JSONレスポンス送信ヘルパー"""
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(json.dumps(data).encode())
+
     def log_message(self, format, *args):
         """ヘルスチェックのアクセスログを抑制"""
         pass
@@ -76,7 +93,7 @@ class HealthHandler(BaseHTTPRequestHandler):
 def start_health_server(port: int = 8080):
     """ヘルスチェックHTTPサーバーを起動"""
     server = HTTPServer(("0.0.0.0", port), HealthHandler)
-    logger.info(f"ヘルスチェックサーバー起動: port {port}")
+    logger.info(f"API/Healthサーバー起動: port {port}")
     server.serve_forever()
 
 

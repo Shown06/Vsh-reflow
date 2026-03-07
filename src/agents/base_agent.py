@@ -26,6 +26,38 @@ class BaseAgent(ABC):
         self.name = name
         self._cost_manager = cost_manager
         self._logger = logging.getLogger(f"agent.{name}")
+        self._redis = None
+
+    def _get_redis(self):
+        """Redisクライアントを遅延初期化"""
+        if self._redis is None:
+            try:
+                import redis
+                self._redis = redis.Redis.from_url(settings.redis.url)
+            except Exception as e:
+                self._logger.error(f"Redis初期化失敗: {e}")
+        return self._redis
+
+    async def _report_presence(self, status: str, task: str = "", thought: str = ""):
+        """Redisにエージェントの現在状態を報告"""
+        r = self._get_redis()
+        if not r:
+            return
+            
+        try:
+            import json
+            data = {
+                "name": self.name,
+                "role": self.role.value if hasattr(self.role, "value") else str(self.role),
+                "status": status, # idle, working, thinking, error
+                "task": task,
+                "thought": thought,
+                "last_seen": datetime.now(timezone.utc).isoformat()
+            }
+            # キー: vsh:agent:{name}, 有効期限 10分
+            r.set(f"vsh:agent:{self.name}", json.dumps(data), ex=600)
+        except Exception as e:
+            self._logger.warning(f"Presence報告失敗: {e}")
 
     @abstractmethod
     async def execute_task(self, task_code: str, task_type: str, payload: dict) -> dict:
@@ -64,6 +96,7 @@ class BaseAgent(ABC):
 
         # タスクステータス更新
         await self._update_task_status(task_code, TaskStatus.IN_PROGRESS)
+        await self._report_presence(status="working", task=task_type, thought="タスクを開始します...")
 
         try:
             result = await self.execute_task(task_code, task_type, payload)
@@ -111,8 +144,12 @@ class BaseAgent(ABC):
                 error=str(e),
             )
             await self._update_task_status(task_code, TaskStatus.FAILED, error=str(e))
+            await self._report_presence(status="error", task=task_type, thought=f"エラーが発生しました: {str(e)}")
 
             return {"success": False, "error": str(e)}
+        finally:
+            # 完了または失敗後、しばらくしてからidleに戻る（デモ用）
+            await self._report_presence(status="idle")
 
     def auto_select_provider(self, task_hint: str = "") -> str:
         """
@@ -186,7 +223,8 @@ class BaseAgent(ABC):
             provider = self.auto_select_provider(task_hint)
 
         model = self._cost_manager.select_model(tier, provider)
-        self._logger.debug(f"LLM呼び出し: {provider}/{model} (tier={tier.value})")
+        # ステータス報告: 思考中
+        await self._report_presence(status="thinking", thought=f"{provider}/{model} で思考を生成中...")
 
         try:
             if provider == "openai":

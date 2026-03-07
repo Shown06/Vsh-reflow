@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AntiGravity - Virtual Agent Office</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app-container">
+        <header>
+            <h1 class="pixel-text">AGI VIRTUAL OFFICE</h1>
+            <div id="system-stats">
+                <span id="uptime">UPTIME: 0s</span>
+                <span id="agent-count">AGENTS: 0</span>
+            </div>
+        </header>
+
+        <main id="office-floor">
+            <!-- エージェントたちが歩き回る場所 -->
+            <div id="agent-layer"></div>
+            
+            <div class="office-decoration">
+                <div class="desk" style="top: 20%; left: 10%;"></div>
+                <div class="desk" style="top: 20%; left: 40%;"></div>
+                <div class="desk" style="top: 20%; left: 70%;"></div>
+                <div class="sofa" style="top: 70%; left: 20%;"></div>
+                <div class="server-rack" style="top: 70%; left: 75%;"></div>
+            </div>
+        </main>
+
+        <aside id="thought-log">
+            <h2 class="pixel-text">AGENT THOUGHTS</h2>
+            <div id="log-content"></div>
+        </aside>
+
+        <footer>
+            <div class="status-indicator">
+                <span class="dot online"></span> SYSTEM ONLINE
+            </div>
+            <div id="clock">00:00:00</div>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

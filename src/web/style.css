@@ -1,0 +1,239 @@
+:root {
+    --bg-color: #1a1a2e;
+    --window-bg: #16213e;
+    --accent: #e94560;
+    --text: #0f3460;
+    --bright-green: #00ff7f;
+    --floor: #2c2c54;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: white;
+    font-family: 'Press Start 2P', cursive;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.pixel-text {
+    line-height: 1.5;
+    text-shadow: 2px 2px 0px #000;
+}
+
+#app-container {
+    width: 95vw;
+    height: 90vh;
+    border: 4px solid #fff;
+    box-shadow: 10px 10px 0px #000;
+    display: grid;
+    grid-template-areas: 
+        "header header"
+        "office log"
+        "footer footer";
+    grid-template-columns: 1fr 300px;
+    grid-template-rows: 60px 1fr 40px;
+    background-color: var(--window-bg);
+}
+
+header {
+    grid-area: header;
+    border-bottom: 4px solid #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    background: linear-gradient(90deg, #0f3460, #16213e);
+}
+
+header h1 {
+    font-size: 14px;
+}
+
+#system-stats {
+    font-size: 8px;
+    display: flex;
+    gap: 20px;
+}
+
+#office-floor {
+    grid-area: office;
+    position: relative;
+    background-color: var(--floor);
+    /* 床のタイル模様 */
+    background-image: 
+        linear-gradient(45deg, #323266 25%, transparent 25%), 
+        linear-gradient(-45deg, #323266 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #323266 75%), 
+        linear-gradient(-45deg, transparent 75%, #323266 75%);
+    background-size: 40px 40px;
+    background-position: 0 0, 0 20px, 20px 20px, 20px 0;
+    overflow: hidden;
+}
+
+#thought-log {
+    grid-area: log;
+    border-left: 4px solid #fff;
+    padding: 15px;
+    background-color: #000;
+    font-size: 8px;
+    overflow-y: auto;
+}
+
+#thought-log h2 {
+    font-size: 10px;
+    margin-bottom: 10px;
+    color: var(--bright-green);
+    border-bottom: 2px solid var(--bright-green);
+    padding-bottom: 5px;
+}
+
+#log-content {
+    line-height: 1.8;
+}
+
+.log-entry {
+    margin-bottom: 8px;
+    opacity: 0.9;
+}
+
+.log-entry .agent-name {
+    color: var(--accent);
+}
+
+footer {
+    grid-area: footer;
+    border-top: 4px solid #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    font-size: 8px;
+    background-color: #000;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.dot.online {
+    background-color: var(--bright-green);
+    box-shadow: 0 0 5px var(--bright-green);
+}
+
+/* --- エージェントのスタイル --- */
+.agent {
+    position: absolute;
+    width: 32px;
+    height: 32px;
+    transition: all 1s ease-in-out;
+    z-index: 10;
+}
+
+.agent-sprite {
+    width: 100%;
+    height: 100%;
+    background-color: var(--accent);
+    border: 2px solid #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 16px;
+    border-radius: 4px;
+    box-shadow: 2px 2px 0px #000;
+}
+
+.agent-name-tag {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.8);
+    padding: 2px 4px;
+    font-size: 6px;
+    white-space: nowrap;
+    border: 1px solid #fff;
+}
+
+/* 思考吹き出し */
+.bubble {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    color: black;
+    padding: 5px;
+    border-radius: 4px;
+    font-size: 6px;
+    width: 100px;
+    text-align: center;
+    border: 1px solid black;
+    z-index: 20;
+}
+
+.bubble:after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: white transparent transparent transparent;
+}
+
+/* --- オフィス装飾 --- */
+.desk {
+    position: absolute;
+    width: 60px;
+    height: 30px;
+    background-color: #8b4513;
+    border: 3px solid #000;
+    box-shadow: 4px 4px 0px rgba(0,0,0,0.3);
+}
+
+.sofa {
+    position: absolute;
+    width: 80px;
+    height: 40px;
+    background-color: #1a5e1a;
+    border: 3px solid #000;
+    border-radius: 10px 10px 0 0;
+}
+
+.server-rack {
+    position: absolute;
+    width: 40px;
+    height: 60px;
+    background-color: #333;
+    border: 3px solid #fff;
+}
+
+/* 走査線エフェクト (WOW要素) */
+#app-container::after {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 100;
+    background-size: 100% 4px, 3px 100%;
+    pointer-events: none;
+}

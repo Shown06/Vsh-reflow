@@ -212,6 +212,8 @@ services:
       - "443:443"
     volumes:
       - deployed:/usr/share/nginx/html
+      - ./src/web:/usr/share/nginx/html/dashboard:ro
+      - ./src/web/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       - vsh-reflow-net
 

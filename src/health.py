@@ -40,23 +40,85 @@ class HealthHandler(BaseHTTPRequestHandler):
             self._send_json(response)
 
         elif self.path == "/api/agents":
-            # 全エージェントの状態をRedisから取得
+            # 全エージェントの状態をRedisから取得し、未登録のエージェントはアイドルとして補完する
             response = {"agents": []}
             try:
                 import redis
+                from datetime import datetime, timezone
                 r = redis.Redis.from_url(settings.redis.url)
                 
-                # エージェントのキーをスキャン
+                # 1. 登録済みエージェントをRedisから取得
                 keys = r.keys("vsh:agent:*")
+                registered_agents = {}
                 for key in keys:
                     data = r.get(key)
                     if data:
-                        response["agents"].append(json.loads(data))
+                        try:
+                            agent_data = json.loads(data)
+                            registered_agents[agent_data.get("name")] = agent_data
+                            response["agents"].append(agent_data)
+                        except json.JSONDecodeError:
+                            pass
                 
+                # 2. 未登録のエージェントをAGENTS_MAPから調べて補完登録
+                try:
+                    import sys
+                    import os
+                    # パスを追加してsrcモジュールをインポートできるようにする
+                    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                    from src.workers.celery_app import AGENT_MAP
+                    from src.agents import PM_Agent, GrowthAgent, AnalystAgent, SEAgent, WebAgent, DesignAgent
+                    from src.agents import FinanceAgent, CRM_Agent, DeployAgent, ContentAgent, BrowserAgent
+                    from src.agents import EmailAgent, CommerceAgent, SaaS_API_Agent, LineAgent, ScheduleAgent
+                    from src.agents import GitHubAgent, GuardAgent, TelegramBotAgent, PubCrawlerAgent
+                    
+                    # 簡易的な名前とロールのマップ（インスタンス化せずに取得）
+                    # AGENT_MAPのキーと実際のエージェント情報をマッピング
+                    basic_agents = {
+                        "pm": {"name": "PM-Agent", "role": "PM"},
+                        "growth": {"name": "GrowthAgent", "role": "GROWTH_HACKER"},
+                        "analyst": {"name": "AnalystAgent", "role": "DATA_ANALYST"},
+                        "dev": {"name": "SEAgent", "role": "DEVELOPER"},
+                        "web": {"name": "WebAgent", "role": "FRONTEND_ENGINEER"},
+                        "design": {"name": "DesignAgent", "role": "UIUX_DESIGNER"},
+                        "finance": {"name": "FinanceAgent", "role": "ACCOUNTANT"},
+                        "crm": {"name": "CRM-Agent", "role": "SALES_SUPPORT"},
+                        "deploy": {"name": "DeployAgent", "role": "INFRA_ENGINEER"},
+                        "content": {"name": "ContentAgent", "role": "CONTENT_CREATOR"},
+                        "browser": {"name": "BrowserAgent", "role": "RESEARCHER"},
+                        "email": {"name": "EmailAgent", "role": "SUPPORT_DESK"},
+                        "commerce": {"name": "CommerceAgent", "role": "EC_MANAGER"},
+                        "saas": {"name": "SaaS-API-Agent", "role": "API_INTEGRATOR"},
+                        "line": {"name": "LINE-Agent", "role": "SNS_MANAGER"},
+                        "schedule": {"name": "ScheduleAgent", "role": "SECRETARY"},
+                        "github": {"name": "GitHubAgent", "role": "QA_ENGINEER"},
+                        "pub": {"name": "PubCrawlerAgent", "role": "SECURITY_EXPERT"}
+                    }
+
+                    for key, info in basic_agents.items():
+                        if info["name"] not in registered_agents:
+                            # Redisに未登録のエージェントを待機中として書き込み
+                            idle_data = {
+                                "name": info["name"],
+                                "role": info["role"],
+                                "status": "idle",
+                                "task": "",
+                                "thought": "システム再構成完了。待機しています。",
+                                "last_seen": datetime.now(timezone.utc).isoformat()
+                            }
+                            # レスポンスにも追加
+                            response["agents"].append(idle_data)
+                            # Redisにも登録（次回以降のため）
+                            r.set(f"vsh:agent:{info['name']}", json.dumps(idle_data), ex=3600)  # 1時間保持
+
+                except Exception as map_err:
+                    print(f"Agent map iteration error: {map_err}") # ログ出力
+
                 status_code = 200
             except Exception as e:
                 response = {"error": str(e)}
                 status_code = 500
+
 
             self._send_json(response, status_code)
 

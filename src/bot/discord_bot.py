@@ -301,11 +301,28 @@ async def task_result_observer():
                     if task.status == TaskStatus.COMPLETED:
                         # 結果の整形
                         res_data = task.result or {}
-                        # content_agent等の結果は 'ideas' 'research_report' 等のキーに入っている
+                        # content_agent等の結果は 'ideas', 'research_report' 等のキー、または 'result' キーに入っている可能性がある
                         main_text = ""
-                        for val in res_data.values():
-                            if isinstance(val, str):
-                                main_text += val + "\n"
+                        
+                        # 既知のキーを優先的に探す
+                        prioritized_keys = ["ideas", "research_report", "draft", "image_url", "meeting_report", "result"]
+                        found_content = False
+                        
+                        for key in prioritized_keys:
+                            if key in res_data and res_data[key]:
+                                if isinstance(res_data[key], str):
+                                    main_text = res_data[key]
+                                    found_content = True
+                                    break
+                        
+                        # 見つからない場合は全文字列を結合
+                        if not found_content:
+                            for val in res_data.values():
+                                if isinstance(val, str):
+                                    main_text += val + "\n"
+                        
+                        if not main_text:
+                            main_text = "(詳細な結果データがありません)"
                         
                         msg = (
                             f"✅ **タスク完了報告**\n"
@@ -327,6 +344,8 @@ async def task_result_observer():
                     
                     # 通知済みフラグを立てる
                     task.notified = True
+                    # セッションをコミットしてDBに反映させる
+                    await session.commit()
                 except Exception as ex:
                     logger.error(f"タスク結果個席通知エラー ({task.task_code}): {ex}")
             

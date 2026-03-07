@@ -81,9 +81,15 @@ async def on_command_error(ctx, error):
 @is_owner()
 @app_commands.describe(theme="企画テーマ")
 async def cmd_idea(interaction: discord.Interaction, theme: str):
+    logger.info(f"📥 [Discord] コマンド受信: /idea theme={theme} (user={interaction.user})")
     await interaction.response.defer()
-    result = await command_handler.handle_idea(theme)
-    await interaction.followup.send(result["message"])
+    try:
+        result = await command_handler.handle_idea(theme)
+        logger.info(f"✅ [Discord] /idea 処理完了: {result.get('task_code')}")
+        await interaction.followup.send(result["message"])
+    except Exception as e:
+        logger.error(f"❌ [Discord] /idea エラー: {e}", exc_info=True)
+        await interaction.followup.send(f"⚠️ エラーが発生しました: {e}")
 
 
 @bot.tree.command(name="research", description="競合・トレンド調査を指示")

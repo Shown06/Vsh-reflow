@@ -54,11 +54,17 @@ class CommandHandler:
             session.add(task)
 
         # Celeryタスクをキューに投入
-        from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.apply_async(
-            args=("growth", task_code, "idea_generation", {"theme": theme}),
-            queue="growth_queue"
-        )
+        try:
+            from src.workers.celery_app import dispatch_agent_task
+            logger.info(f"📤 Celeryタスク投入試行: growth_queue / {task_code}")
+            dispatch_agent_task.apply_async(
+                args=("growth", task_code, "idea_generation", {"theme": theme}),
+                queue="growth_queue"
+            )
+            logger.info(f"🚀 Celeryタスク投入成功: {task_code}")
+        except Exception as e:
+            logger.error(f"❌ Celeryタスク投入失敗: {e}", exc_info=True)
+            raise
 
         return {
             "task_code": task_code,

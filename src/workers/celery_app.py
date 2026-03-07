@@ -98,8 +98,7 @@ def _get_agent(agent_key: str):
 def dispatch_agent_task(self, agent_key: str, task_code: str, task_type: str, payload: dict):
     """エージェントタスクをディスパッチ"""
     import asyncio
-
-    logger.info(f"タスクディスパッチ: {agent_key}/{task_type} ({task_code})")
+    logger.info(f"📥 [Worker] タスク受信: {agent_key}/{task_type} (code={task_code})")
 
     try:
         agent = _get_agent(agent_key)

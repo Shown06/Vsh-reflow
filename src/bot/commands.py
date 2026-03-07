@@ -55,7 +55,10 @@ class CommandHandler:
 
         # Celeryタスクをキューに投入
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay("growth", task_code, "idea_generation", {"theme": theme})
+        dispatch_agent_task.apply_async(
+            args=("growth", task_code, "idea_generation", {"theme": theme}),
+            queue="growth_queue"
+        )
 
         return {
             "task_code": task_code,
@@ -85,7 +88,10 @@ class CommandHandler:
             session.add(task)
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay("growth", task_code, "research", {"keyword": keyword})
+        dispatch_agent_task.apply_async(
+            args=("growth", task_code, "research", {"keyword": keyword}),
+            queue="growth_queue"
+        )
 
         return {
             "task_code": task_code,
@@ -115,9 +121,9 @@ class CommandHandler:
             session.add(task)
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "content", task_code, "content_draft",
-            {"platform": platform, "theme": theme}
+        dispatch_agent_task.apply_async(
+            args=("content", task_code, "content_draft", {"platform": platform, "theme": theme}),
+            queue="content_queue"
         )
 
         return {

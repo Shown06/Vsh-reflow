@@ -55,6 +55,10 @@ AGENT_MAP = {
     "guard": "src.agents.guard_agent:guard_agent",
     "analyst": "src.agents.analyst_agent:analyst_agent",
     "pub": "src.agents.pub_agent:pub_agent",
+    # 互換性のためのエイリアス
+    "pm-agent": "src.agents.pm_agent:pm_agent",
+    "growth-agent": "src.agents.growth_agent:growth_agent",
+    "content-agent": "src.agents.content_agent:content_agent",
     # Phase 2: AGI拡張
     "browser": "src.agents.browser_agent:browser_agent",
     "dev": "src.agents.dev_agent:dev_agent",

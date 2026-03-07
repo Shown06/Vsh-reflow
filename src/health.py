@@ -63,23 +63,23 @@ class HealthHandler(BaseHTTPRequestHandler):
                 # 2. 未登録のエージェントを補完登録
                 basic_agents = {
                     "pm": {"name": "PM-Agent", "role": "PM"},
-                    "growth": {"name": "GrowthAgent", "role": "GROWTH_HACKER"},
-                    "analyst": {"name": "AnalystAgent", "role": "DATA_ANALYST"},
-                    "dev": {"name": "SEAgent", "role": "DEVELOPER"},
-                    "web": {"name": "WebAgent", "role": "FRONTEND_ENGINEER"},
-                    "design": {"name": "DesignAgent", "role": "UIUX_DESIGNER"},
-                    "finance": {"name": "FinanceAgent", "role": "ACCOUNTANT"},
+                    "growth": {"name": "Growth-Agent", "role": "GROWTH_HACKER"},
+                    "analyst": {"name": "Analyst-Agent", "role": "DATA_ANALYST"},
+                    "dev": {"name": "Dev-Agent", "role": "DEVELOPER"},
+                    "web": {"name": "Web-Agent", "role": "FRONTEND_ENGINEER"},
+                    "design": {"name": "Design-Agent", "role": "UIUX_DESIGNER"},
+                    "finance": {"name": "Finance-Agent", "role": "ACCOUNTANT"},
                     "crm": {"name": "CRM-Agent", "role": "SALES_SUPPORT"},
-                    "deploy": {"name": "DeployAgent", "role": "INFRA_ENGINEER"},
-                    "content": {"name": "ContentAgent", "role": "CONTENT_CREATOR"},
-                    "browser": {"name": "BrowserAgent", "role": "RESEARCHER"},
-                    "email": {"name": "EmailAgent", "role": "SUPPORT_DESK"},
-                    "commerce": {"name": "CommerceAgent", "role": "EC_MANAGER"},
-                    "saas": {"name": "SaaS-API-Agent", "role": "API_INTEGRATOR"},
+                    "deploy": {"name": "Deploy-Agent", "role": "INFRA_ENGINEER"},
+                    "content": {"name": "Content-Agent", "role": "CONTENT_CREATOR"},
+                    "browser": {"name": "Browser-Agent", "role": "RESEARCHER"},
+                    "email": {"name": "Email-Agent", "role": "SUPPORT_DESK"},
+                    "commerce": {"name": "Commerce-Agent", "role": "EC_MANAGER"},
+                    "saas": {"name": "SaaS-Agent", "role": "API_INTEGRATOR"},
                     "line": {"name": "LINE-Agent", "role": "SNS_MANAGER"},
-                    "schedule": {"name": "ScheduleAgent", "role": "SECRETARY"},
-                    "github": {"name": "GitHubAgent", "role": "QA_ENGINEER"},
-                    "pub": {"name": "PubCrawlerAgent", "role": "SECURITY_EXPERT"}
+                    "schedule": {"name": "Schedule-Agent", "role": "SECRETARY"},
+                    "github": {"name": "GitHub-Agent", "role": "QA_ENGINEER"},
+                    "pub": {"name": "Pub-Agent", "role": "SECURITY_EXPERT"}
                 }
 
                 # 任意: 実際のAGENT_MAPから動的にマッピングを拡張（インポートできれば）

@@ -226,12 +226,36 @@ celery_app.conf.beat_schedule = {
     },
 }
 
+# ============================================
+# 初期化: Celery Worker 起動完了後に全エージェントの Presence を報告
+# ============================================
+from celery.signals import worker_ready
 
-# ============================================
-# 初期化: 全エージェントの Presence 報告をトリガー
-# ============================================
-try:
-    for key in AGENT_MAP.keys():
-        _get_agent(key)
-except Exception as e:
-    logger.error(f"Failed to initialize agent presence on startup: {e}")
+@worker_ready.connect
+def on_worker_ready(**kwargs):
+    """ワーカー起動完了後に全エージェントのPresenceをRedisへ報告"""
+    import redis as redis_lib
+    import json
+    from datetime import datetime, timezone
+
+    logger.info("🏢 Virtual Office: Registering all agents presence...")
+    try:
+        r = redis_lib.Redis.from_url(f"redis://redis:6379/0", socket_timeout=5)
+        for key, module_path in AGENT_MAP.items():
+            try:
+                agent = _get_agent(key)
+                data = {
+                    "name": agent.name,
+                    "role": agent.role.value if hasattr(agent.role, "value") else str(agent.role),
+                    "status": "idle",
+                    "task": "",
+                    "thought": "起動完了。待機中です。",
+                    "last_seen": datetime.now(timezone.utc).isoformat()
+                }
+                r.set(f"vsh:agent:{agent.name}", json.dumps(data), ex=600)
+                logger.info(f"  ✅ {agent.name} registered in virtual office")
+            except Exception as e:
+                logger.warning(f"  ❌ Failed to register {key}: {e}")
+        logger.info("🏢 Virtual Office: All agents registered!")
+    except Exception as e:
+        logger.error(f"🏢 Virtual Office: Failed to connect to Redis: {e}")

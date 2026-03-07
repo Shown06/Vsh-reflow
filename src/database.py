@@ -16,12 +16,12 @@ from sqlalchemy.orm import DeclarativeBase
 from src.config import settings
 
 
+from sqlalchemy.pool import NullPool
+
 engine = create_async_engine(
     settings.database.url,
     echo=(settings.environment == "development"),
-    pool_size=20,
-    max_overflow=10,
-    pool_pre_ping=True,
+    poolclass=NullPool,
 )
 
 async_session_factory = async_sessionmaker(

@@ -307,25 +307,25 @@ class BaseAgent(ABC):
         try:
             from openai import AsyncOpenAI
 
-            client = AsyncOpenAI(api_key=settings.openai.api_key)
-            messages = []
-            if system_prompt:
-                messages.append({"role": "system", "content": system_prompt})
-            messages.append({"role": "user", "content": prompt})
+            async with AsyncOpenAI(api_key=settings.openai.api_key) as client:
+                messages = []
+                if system_prompt:
+                    messages.append({"role": "system", "content": system_prompt})
+                messages.append({"role": "user", "content": prompt})
 
-            response = await client.chat.completions.create(
-                model=model,
-                messages=messages,
-                max_tokens=max_tokens,
-                temperature=temperature,
-            )
+                response = await client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                )
 
-            return {
-                "text": response.choices[0].message.content,
-                "model": model,
-                "input_tokens": response.usage.prompt_tokens,
-                "output_tokens": response.usage.completion_tokens,
-            }
+                return {
+                    "text": response.choices[0].message.content,
+                    "model": model,
+                    "input_tokens": response.usage.prompt_tokens,
+                    "output_tokens": response.usage.completion_tokens,
+                }
         except Exception as e:
             # APIキー未設定時はモックレスポンス
             self._logger.warning(f"OpenAI API エラー (モックレスポンス使用): {e}")
@@ -348,24 +348,24 @@ class BaseAgent(ABC):
         try:
             from anthropic import AsyncAnthropic
 
-            client = AsyncAnthropic(api_key=settings.anthropic.api_key)
-            kwargs = {
-                "model": model,
-                "max_tokens": max_tokens,
-                "temperature": temperature,
-                "messages": [{"role": "user", "content": prompt}],
-            }
-            if system_prompt:
-                kwargs["system"] = system_prompt
+            async with AsyncAnthropic(api_key=settings.anthropic.api_key) as client:
+                kwargs = {
+                    "model": model,
+                    "max_tokens": max_tokens,
+                    "temperature": temperature,
+                    "messages": [{"role": "user", "content": prompt}],
+                }
+                if system_prompt:
+                    kwargs["system"] = system_prompt
 
-            response = await client.messages.create(**kwargs)
+                response = await client.messages.create(**kwargs)
 
-            return {
-                "text": response.content[0].text,
-                "model": model,
-                "input_tokens": response.usage.input_tokens,
-                "output_tokens": response.usage.output_tokens,
-            }
+                return {
+                    "text": response.content[0].text,
+                    "model": model,
+                    "input_tokens": response.usage.input_tokens,
+                    "output_tokens": response.usage.output_tokens,
+                }
         except Exception as e:
             self._logger.warning(f"Anthropic API エラー (モックレスポンス使用): {e}")
             return {

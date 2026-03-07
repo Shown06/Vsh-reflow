@@ -102,12 +102,7 @@ def dispatch_agent_task(self, agent_key: str, task_code: str, task_type: str, pa
 
     try:
         agent = _get_agent(agent_key)
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            result = loop.run_until_complete(agent.run(task_code, task_type, payload))
-        finally:
-            loop.close()
+        result = asyncio.run(agent.run(task_code, task_type, payload))
 
         logger.info(f"タスク完了: {task_code} -> {result.get('success')}")
         return result
@@ -171,11 +166,7 @@ def daily_backup_notification():
         except Exception as e:
             logger.error(f"バックアップ通知エラー: {e}")
 
-    loop = asyncio.new_event_loop()
-    try:
-        loop.run_until_complete(_notify())
-    finally:
-        loop.close()
+    asyncio.run(_notify())
 
 
 @celery_app.task(name="trigger_heartbeat")

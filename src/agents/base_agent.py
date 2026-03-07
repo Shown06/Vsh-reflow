@@ -27,6 +27,27 @@ class BaseAgent(ABC):
         self._cost_manager = cost_manager
         self._logger = logging.getLogger(f"agent.{name}")
         self._redis = None
+        # 初期状態を「待機中」として報告
+        self._report_presence_sync(status="idle", thought="起動しました。待機中です。")
+
+    def _report_presence_sync(self, status: str, task: str = "", thought: str = ""):
+        """Redisにエージェントの現在状態を報告（同期版）"""
+        try:
+            import redis
+            import json
+            r = redis.Redis.from_url(settings.redis.url)
+            data = {
+                "name": self.name,
+                "role": self.role.value if hasattr(self.role, "value") else str(self.role),
+                "status": status,
+                "task": task,
+                "thought": thought,
+                "last_seen": datetime.now(timezone.utc).isoformat()
+            }
+            r.set(f"vsh:agent:{self.name}", json.dumps(data), ex=600)
+        except Exception as e:
+            # ログレベルを下げてノイズを減らす
+            pass
 
     def _get_redis(self):
         """Redisクライアントを遅延初期化"""

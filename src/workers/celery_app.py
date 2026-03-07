@@ -225,3 +225,13 @@ celery_app.conf.beat_schedule = {
         "schedule": 1800.0,  # 30 minutes
     },
 }
+
+
+# ============================================
+# 初期化: 全エージェントの Presence 報告をトリガー
+# ============================================
+try:
+    for key in AGENT_MAP.keys():
+        _get_agent(key)
+except Exception as e:
+    pass

@@ -28,19 +28,26 @@ class CostLevel(str, Enum):
 
 class LLMTier(str, Enum):
     """LLMモデルティア"""
-    DEFAULT = "default"        # 簡易タスク: GPT-4o-mini / Claude Haiku
-    IMPORTANT = "important"    # 重要タスク: GPT-4o / Claude Sonnet
-    MAX = "max"                # 最高品質: Claude Opus (承認後のみ)
+    DEFAULT = "default"        # Claude Opus 4.6
+    IMPORTANT = "important"    # Claude Opus 4.6
+    MAX = "max"                # Claude Opus 4.6
 
 
 # LLM APIコスト概算 (円/1Kトークン) ※為替レートは概算値
 COST_PER_1K_TOKENS = {
+    # OpenAI
     "gpt-4o-mini": {"input": 0.02, "output": 0.08},
-    "gpt-4o": {"input": 0.38, "output": 1.13},
-    "claude-3-haiku-20240307": {"input": 0.04, "output": 0.19},
+    "gpt-5.4": {"input": 0.30, "output": 0.90},
+    # Anthropic (2026-02 Claude 4.6)
+    "claude-sonnet-4-6": {"input": 0.45, "output": 2.25},
+    "claude-opus-4-6": {"input": 0.75, "output": 3.75},
+    # Anthropic (legacy)
     "claude-3-5-sonnet-20241022": {"input": 0.45, "output": 1.35},
-    "claude-3-opus-20240229": {"input": 2.25, "output": 6.75},
-    # Gemini models
+    "claude-3-5-haiku-20241022": {"input": 0.12, "output": 0.60},
+    # Gemini
+    "gemini-2.5-flash": {"input": 0.01, "output": 0.04},
+    "gemini-3.1-pro-preview": {"input": 0.19, "output": 0.75},
+    # Gemini (legacy)
     "gemini-2.0-flash": {"input": 0.01, "output": 0.04},
     "gemini-2.5-pro": {"input": 0.19, "output": 0.75},
 }

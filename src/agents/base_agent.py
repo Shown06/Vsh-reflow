@@ -174,23 +174,8 @@ class BaseAgent(ABC):
 
     def auto_select_provider(self, task_hint: str = "") -> str:
         """
-        タスク種別に応じて最適なLLMプロバイダーを自動選択
-        - コード生成 → anthropic (Claude: コーディング優位)
-        - 長文分析 → gemini (Gemini: 長コンテキスト)
-        - 日本語テキスト → openai (GPT-4o: 日本語品質) ※オプション
-        - デフォルト → anthropic (Claude)
+        LLMプロバイダー選択 → Claude Opus 4.6 一本化
         """
-        hint = task_hint.lower()
-        if any(k in hint for k in ["code", "dev", "programming", "debug", "fix", "html", "css", "js", "python"]):
-            return "anthropic"
-        elif any(k in hint for k in ["analysis", "research", "long", "report", "browse"]):
-            if settings.gemini.api_key:
-                return "gemini"
-            return "anthropic"
-        elif any(k in hint for k in ["japanese", "日本語", "翻訳"]):
-            if settings.openai.api_key:
-                return "openai"
-            return "anthropic"
         return "anthropic"
 
     def _load_clawdbot_context(self) -> str:

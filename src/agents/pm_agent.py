@@ -80,7 +80,7 @@ class PMAgent(BaseAgent):
         topic = payload.get("topic", "")
         participants = payload.get("participants", [])
 
-        # Step 1: アジェンダ作成
+        # Step 1: アジェンダ作成 (Claude Opus 4.6)
         agenda_result = await self.call_llm(
             prompt=f"""あなたはAIマーケティングチームのPMです。
 以下のテーマでAI社内会議のアジェンダを作成してください。
@@ -97,7 +97,7 @@ class PMAgent(BaseAgent):
 6. パフォーマンス分析・推薦（Analyst-Agent）
 7. 合意形成・承認申請書作成""",
             system_prompt="あなたは優秀なプロジェクトマネージャーです。簡潔かつ実行可能なアジェンダを作成してください。",
-            tier=LLMTier.DEFAULT,
+            tier=LLMTier.IMPORTANT,
         )
 
         # Step 2-7: 各エージェントに逐次的にタスクを投入し、結果を待つ
@@ -199,7 +199,7 @@ class PMAgent(BaseAgent):
                 ]
                 """,
                 system_prompt="あなたは優秀なプレゼン資料作成のスペシャリストです。10枚のスライドで、会議の成果を分かりやすく伝えてください。JSONリスト形式のみを返却してください。",
-                tier=LLMTier.IMPORTANT
+                tier=LLMTier.IMPORTANT,
             )
             
             import json

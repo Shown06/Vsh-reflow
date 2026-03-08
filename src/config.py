@@ -82,25 +82,25 @@ class TelegramConfig:
 class OpenAIConfig:
     api_key: str = _get_env("OPENAI_API_KEY")
     default_model: str = _get_env("OPENAI_DEFAULT_MODEL", "gpt-4o-mini")
-    important_model: str = _get_env("OPENAI_IMPORTANT_MODEL", "gpt-4o")
-    max_model: str = _get_env("OPENAI_MAX_MODEL", "gpt-4o")
+    important_model: str = _get_env("OPENAI_IMPORTANT_MODEL", "gpt-5.4")
+    max_model: str = _get_env("OPENAI_MAX_MODEL", "gpt-5.4")
     image_model: str = _get_env("OPENAI_IMAGE_MODEL", "dall-e-3")
 
 
 @dataclass(frozen=True)
 class AnthropicConfig:
     api_key: str = _get_env("ANTHROPIC_API_KEY")
-    default_model: str = _get_env("ANTHROPIC_DEFAULT_MODEL", "claude-3-haiku-20240307")
-    important_model: str = _get_env("ANTHROPIC_IMPORTANT_MODEL", "claude-3-5-sonnet-20241022")
-    max_model: str = _get_env("ANTHROPIC_MAX_MODEL", "claude-3-opus-20240229")
+    default_model: str = _get_env("ANTHROPIC_DEFAULT_MODEL", "claude-opus-4-6")
+    important_model: str = _get_env("ANTHROPIC_IMPORTANT_MODEL", "claude-opus-4-6")
+    max_model: str = _get_env("ANTHROPIC_MAX_MODEL", "claude-opus-4-6")
 
 
 @dataclass(frozen=True)
 class GeminiConfig:
     api_key: str = _get_env("GEMINI_API_KEY")
-    default_model: str = _get_env("GEMINI_DEFAULT_MODEL", "gemini-2.0-flash")
-    important_model: str = _get_env("GEMINI_IMPORTANT_MODEL", "gemini-2.5-pro")
-    max_model: str = _get_env("GEMINI_MAX_MODEL", "gemini-2.5-pro")
+    default_model: str = _get_env("GEMINI_DEFAULT_MODEL", "gemini-2.5-flash")
+    important_model: str = _get_env("GEMINI_IMPORTANT_MODEL", "gemini-3.1-pro-preview")
+    max_model: str = _get_env("GEMINI_MAX_MODEL", "gemini-3.1-pro-preview")
 
 
 @dataclass(frozen=True)

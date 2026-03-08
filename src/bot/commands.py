@@ -349,7 +349,7 @@ class CommandHandler:
         from src.workers.celery_app import dispatch_agent_task
         dispatch_agent_task.apply_async(
             args=("pm", meeting_code, "conduct_meeting",
-            {"topic": topic, "participants": participants}),
+            {"topic": topic, "participants": participants, "discord_channel_id": str(channel_id) if channel_id else None}),
             queue="pm_queue"
         )
 

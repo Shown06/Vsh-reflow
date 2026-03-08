@@ -5,6 +5,7 @@ Vsh-reflow - Discord Bot
 
 import asyncio
 import logging
+import os
 import threading
 
 import discord
@@ -343,13 +344,28 @@ async def task_result_observer():
                         main_text = ""
                         
                         # 既知のキーを優先的に探す
-                        prioritized_keys = ["ideas", "research_report", "draft", "image_url", "meeting_report", "result"]
+                        prioritized_keys = [
+                            "agenda", "research", "content_proposals", "design_proposals", 
+                            "guard_review", "analysis", "ideas", "research_report", 
+                            "draft", "image_url", "result"
+                        ]
                         found_content = False
                         
                         for key in prioritized_keys:
                             if key in res_data and res_data[key]:
                                 if isinstance(res_data[key], str):
                                     main_text = res_data[key]
+                                    
+                                    # 会議用の装飾
+                                    emoji = "✅"
+                                    if key == "agenda": emoji = "📅 【アジェンダ】"
+                                    elif key == "research": emoji = "🔍 【リサーチ報告】"
+                                    elif key == "content_proposals": emoji = "📝 【コンテンツ案】"
+                                    elif key == "design_proposals": emoji = "🎨 【デザイン案】"
+                                    elif key == "guard_review": emoji = "🛡️ 【リスク・コスト審査】"
+                                    elif key == "analysis": emoji = "📊 【分析報告】"
+                                    
+                                    task.title = f"{emoji} {task.title}"
                                     found_content = True
                                     break
                         
@@ -362,15 +378,32 @@ async def task_result_observer():
                         if not main_text:
                             main_text = "(詳細な結果データがありません)"
                         
-                        msg = (
+                        header = (
                             f"✅ **タスク完了報告**\n"
                             f"📋 タスクID: `{task.task_code}`\n"
                             f"🎯 タイトル: {task.title}\n"
                             f"🤖 担当: {task.assigned_agent.value if hasattr(task.assigned_agent, 'value') else task.assigned_agent}\n"
                             f"━━━━━━━━━━━━━━━━━━\n"
-                            f"{main_text[:1800]}" # Discord制限対策
                         )
-                        await channel.send(msg)
+                        
+                        # Discord制限対策と分割送信
+                        if len(header + main_text) > 2000:
+                            await channel.send(header)
+                            chunks = [main_text[i:i+1900] for i in range(0, len(main_text), 1900)]
+                            for i, chunk in enumerate(chunks):
+                                await channel.send(f"--- 続き({i+1}/{len(chunks)}) ---\n{chunk}")
+                        else:
+                            await channel.send(header + main_text)
+                            
+                        # PDFファイルのアップロード指示があれば実行
+                        if "pdf_path" in res_data and res_data["pdf_path"]:
+                            pdf_path = res_data["pdf_path"]
+                            if os.path.exists(pdf_path):
+                                import discord
+                                await channel.send(
+                                    content="📄 **【プレゼン資料】制作完了**\n会議の結果をまとめたPDF資料を作成しました。ダウンロードしてご確認ください。",
+                                    file=discord.File(pdf_path)
+                                )
                     else:
                         msg = (
                             f"❌ **タスク失敗報告**\n"

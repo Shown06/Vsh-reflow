@@ -4,11 +4,14 @@ Vsh-reflow - PM-Agent (会議進行・タスク割当)
 """
 
 import logging
+import os
 from typing import Any
+from datetime import datetime
 
 from src.agents.base_agent import BaseAgent
 from src.cost_manager import LLMTier
-from src.models import AgentRole
+from src.models import AgentRole, Task, TaskStatus
+from src.database import get_session
 
 logger = logging.getLogger(__name__)
 
@@ -97,48 +100,155 @@ class PMAgent(BaseAgent):
             tier=LLMTier.DEFAULT,
         )
 
-        # Step 2-7: 各エージェントにタスクを投入
+        # Step 2-7: 各エージェントに逐次的にタスクを投入し、結果を待つ
         from src.workers.celery_app import dispatch_agent_task
+        from sqlalchemy import select
+        import asyncio
+        
+        discord_channel_id = payload.get("discord_channel_id")
+        meeting_results = {}
 
-        # Growth-Agentにリサーチ指示
-        dispatch_agent_task.apply_async(
-            args=("growth", task_code, "meeting_research", {"topic": topic, "meeting_code": task_code}),
-            queue="growth_queue"
-        )
+        async with get_session() as session:
+            # 1. Growth-Agent (リサーチ)
+            sub_task_code = f"{task_code}-G"
+            growth_payload = {"topic": topic, "meeting_code": task_code}
+            new_task = Task(
+                task_code=sub_task_code,
+                title=f"【会議】リサーチ取得",
+                description=f"会議 '{topic}' のためのリサーチ",
+                task_type="meeting_research",
+                assigned_agent=AgentRole.GROWTH,
+                status=TaskStatus.PENDING,
+                payload=growth_payload,
+                discord_channel_id=discord_channel_id
+            )
+            session.add(new_task)
+            await session.commit() # 登録を確定
+            
+            dispatch_agent_task.apply_async(args=("growth", sub_task_code, "meeting_research", growth_payload), queue="growth_queue")
+            
+            # 完了を待機
+            growth_res = await self._wait_for_subtask(sub_task_code)
+            meeting_results["research"] = growth_res.get("research", "取得失敗")
 
-        # Content-Agentに3案作成指示
-        dispatch_agent_task.apply_async(
-            args=("content", task_code, "meeting_content", {"topic": topic, "meeting_code": task_code, "num_proposals": 3}),
-            queue="content_queue"
-        )
+            # 2. Content-Agent (コンテンツ案)
+            sub_task_code = f"{task_code}-C"
+            content_payload = {
+                "topic": topic, 
+                "meeting_code": task_code, 
+                "num_proposals": 3,
+                "research_context": meeting_results["research"] # リサーチ結果を渡す！
+            }
+            new_task = Task(
+                task_code=sub_task_code,
+                title=f"【会議】コンテンツ作成",
+                description=f"会議 '{topic}' のためのコンテンツ案作成",
+                task_type="meeting_content",
+                assigned_agent=AgentRole.CONTENT,
+                status=TaskStatus.PENDING,
+                payload=content_payload,
+                discord_channel_id=discord_channel_id
+            )
+            session.add(new_task)
+            await session.commit()
+            
+            dispatch_agent_task.apply_async(args=("content", sub_task_code, "meeting_content", content_payload), queue="content_queue")
+            content_res = await self._wait_for_subtask(sub_task_code)
+            meeting_results["content_proposals"] = content_res.get("content_proposals", "作成失敗")
 
-        # Design-Agentにデザインプロンプト作成指示
-        dispatch_agent_task.apply_async(
-            args=("design", task_code, "meeting_design", {"topic": topic, "meeting_code": task_code}),
-            queue="design_queue"
-        )
+            # 3. Design-Agent / Guard-Agent / Analyst-Agent (並列でも良いが、実況感を出すため逐次)
+            # デザイン
+            sub_task_code = f"{task_code}-D"
+            design_payload = {"topic": topic, "meeting_code": task_code, "content_context": meeting_results["content_proposals"]}
+            new_task = Task(task_code=sub_task_code, title=f"【会議】デザイン案作成", task_type="meeting_design", assigned_agent=AgentRole.DESIGN, status=TaskStatus.PENDING, payload=design_payload, discord_channel_id=discord_channel_id)
+            session.add(new_task); await session.commit()
+            dispatch_agent_task.apply_async(args=("design", sub_task_code, "meeting_design", design_payload), queue="design_queue")
+            design_res = await self._wait_for_subtask(sub_task_code)
+            meeting_results["design_proposals"] = design_res.get("design_proposals", "作成失敗")
 
-        # Guard-Agentにリスク審査指示
-        dispatch_agent_task.apply_async(
-            args=("guard", task_code, "meeting_review", {"topic": topic, "meeting_code": task_code}),
-            queue="guard_queue"
-        )
+            # ガード (リスク審査)
+            sub_task_code = f"{task_code}-U"
+            guard_payload = {"topic": topic, "meeting_code": task_code, "content_context": meeting_results["content_proposals"]}
+            new_task = Task(task_code=sub_task_code, title=f"【会議】リスク審査", task_type="meeting_review", assigned_agent=AgentRole.GUARD, status=TaskStatus.PENDING, payload=guard_payload, discord_channel_id=discord_channel_id)
+            session.add(new_task); await session.commit()
+            dispatch_agent_task.apply_async(args=("guard", sub_task_code, "meeting_review", guard_payload), queue="guard_queue")
+            guard_res = await self._wait_for_subtask(sub_task_code)
+            meeting_results["guard_review"] = guard_res.get("guard_review", "審査失敗")
 
-        # Analyst-Agentに分析・推薦指示
-        dispatch_agent_task.apply_async(
-            args=("analyst", task_code, "meeting_analysis", {"topic": topic, "meeting_code": task_code}),
-            queue="analyst_queue"
-        )
+            # アナリスト (最終分析)
+            sub_task_code = f"{task_code}-A"
+            analyst_payload = {"topic": topic, "meeting_code": task_code, "full_context": str(meeting_results)}
+            new_task = Task(task_code=sub_task_code, title=f"【会議】最終分析", task_type="meeting_analysis", assigned_agent=AgentRole.ANALYST, status=TaskStatus.PENDING, payload=analyst_payload, discord_channel_id=discord_channel_id)
+            session.add(new_task); await session.commit()
+            dispatch_agent_task.apply_async(args=("analyst", sub_task_code, "meeting_analysis", analyst_payload), queue="analyst_queue")
+            analyst_res = await self._wait_for_subtask(sub_task_code)
+            meeting_results["analysis"] = analyst_res.get("analysis", "分析失敗")
+
+            # 4. 最終報告: 10枚のスライド構成案を作成し、PDF化する
+            logger.info("プレゼン資料の構成を作成中...")
+            slides_result = await self.call_llm(
+                prompt=f"""これまでのAI会議の結果を元に、初心者向けの「10枚のプレゼン資料スライド」の構成を作成してください。
+                
+                テーマ: {topic}
+                会議結果サマリー: {str(meeting_results)}
+                
+                以下のJSON形式で、ちょうど10枚分のスライド内容を出力してください:
+                [
+                  {{"title": "スライドのタイトル", "content": "スライドの本文（箇条書き等、簡潔に）"}},
+                  ...
+                ]
+                """,
+                system_prompt="あなたは優秀なプレゼン資料作成のスペシャリストです。10枚のスライドで、会議の成果を分かりやすく伝えてください。JSONリスト形式のみを返却してください。",
+                tier=LLMTier.IMPORTANT
+            )
+            
+            import json
+            import re
+            slides_text = slides_result.get("text", "[]")
+            # JSON部分を抽出（LLMが解説を入れてしまった場合の対策）
+            match = re.search(r'\[.*\]', slides_text, re.DOTALL)
+            if match:
+                slides_data = json.loads(match.group())
+            else:
+                slides_data = [{"title": "エラー", "content": "スライドデータの生成に失敗しました"}]
+
+            # PDF生成
+            output_dir = "/app/generated_reports"
+            os.makedirs(output_dir, exist_ok=True)
+            output_filename = f"Report_{task_code}.pdf"
+            output_path = os.path.join(output_dir, output_filename)
+            
+            from src.utils.pdf_generator import generate_presentation_pdf
+            pdf_success = await generate_presentation_pdf(topic, slides_data, output_path)
 
         return {
             "success": True,
             "result": {
                 "agenda": agenda_result.get("text", ""),
-                "status": "会議を開始しました。各エージェントにタスクを配布済み。",
+                "meeting_report": "会議全工程が完了しました。プレゼン資料（PDF）を作成しました。",
+                "pdf_path": output_path if pdf_success else None,
+                "status": "COMPLETED",
                 "participants": participants,
             },
-            "cost_yen": agenda_result.get("cost_yen", 0.0),
+            "cost_yen": agenda_result.get("cost_yen", 0.0) + slides_result.get("cost_yen", 0.0),
         }
+
+    async def _wait_for_subtask(self, sub_task_code: str, timeout: int = 300) -> dict:
+        """サブタスクの完了を待機するヘルパー"""
+        from sqlalchemy import select
+        import asyncio
+        start_time = datetime.now()
+        while (datetime.now() - start_time).total_seconds() < timeout:
+            async with get_session() as session:
+                stmt = select(Task).where(Task.task_code == sub_task_code)
+                res = await session.execute(stmt)
+                task = res.scalar_one_or_none()
+                if task and task.status == TaskStatus.COMPLETED:
+                    return task.result or {}
+                if task and task.status == TaskStatus.FAILED:
+                    return {"error": task.error_message or "Unknown failure"}
+            await asyncio.sleep(5)
+        return {"error": "Timeout"}
 
     async def _create_agenda(self, task_code: str, payload: dict) -> dict:
         """アジェンダ作成"""

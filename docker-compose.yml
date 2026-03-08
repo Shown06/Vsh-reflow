@@ -74,6 +74,9 @@ services:
       retries: 3
     ports:
       - "${HEALTH_CHECK_PORT:-8080}:8080"
+    volumes:
+      - ./src:/app/src
+      - generated-reports:/app/generated_reports
 
   telegram-bot:
     <<: *common
@@ -87,6 +90,9 @@ services:
     <<: *common
     container_name: vsh-reflow-pm-agent
     command: celery -A src.workers.celery_app worker -Q pm_queue -n pm@%h --loglevel=info
+    volumes:
+      - ./src:/app/src
+      - generated-reports:/app/generated_reports
 
   growth-agent:
     <<: *common
@@ -307,6 +313,7 @@ volumes:
   prometheus-data:
   grafana-data:
   generated-images:
+  generated-reports:
   screenshots:
   projects:
   deployed:

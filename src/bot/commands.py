@@ -311,9 +311,10 @@ class CommandHandler:
         ]
 
         async with get_session() as session:
+            topic_text = topic[:250]
             meeting = MeetingRecord(
                 meeting_code=meeting_code,
-                topic=topic,
+                topic=topic_text,
                 trigger="manual",
                 participants=participants,
                 agenda=[
@@ -331,8 +332,8 @@ class CommandHandler:
             # 会議自体もタスクとして追跡するための管理タスクを作成
             task = Task(
                 task_code=meeting_code,
-                title=f"AI会議: {topic}",
-                description=f"AI会議の進行: {topic}",
+                title=f"AI会議: {topic_text[:200]}",
+                description=f"AI会議の進行: {topic_text[:200]}",
                 task_type="meeting",
                 assigned_agent=AgentRole.PM,
                 status=TaskStatus.PENDING,

@@ -168,9 +168,16 @@ async def cmd_budget(interaction: discord.Interaction):
 @is_owner()
 @app_commands.describe(topic="会議テーマ")
 async def cmd_meeting(interaction: discord.Interaction, topic: str):
+    logger.info(f"📥 [Discord] コマンド受信: /meeting topic={topic[:50]}... (user={interaction.user})")
     await interaction.response.defer()
-    result = await command_handler.handle_meeting(topic)
-    await interaction.followup.send(result["message"])
+    try:
+        result = await command_handler.handle_meeting(topic, channel_id=str(interaction.channel_id))
+        logger.info(f"✅ [Discord] /meeting 処理完了")
+        await interaction.followup.send(result["message"])
+    except Exception as e:
+        logger.error(f"❌ [Discord] /meeting エラー: {e}", exc_info=True)
+        error_msg = f"⚠️ エラーが発生しました: {e}"
+        await interaction.followup.send(error_msg[:1900])
 
 
 @bot.tree.command(name="stop", description="全エージェント緊急停止")

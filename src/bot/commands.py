@@ -41,9 +41,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         async with get_session() as session:
+            title_text = f"アイデア出し: {theme}"
             task = Task(
                 task_code=task_code,
-                title=f"アイデア出し: {theme}",
+                title=title_text[:250],
                 description=f"テーマ「{theme}」に関するアイデア出し・企画立案",
                 task_type="idea_generation",
                 assigned_agent=AgentRole.GROWTH,
@@ -83,9 +84,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         async with get_session() as session:
+            title_text = f"リサーチ: {keyword}"
             task = Task(
                 task_code=task_code,
-                title=f"リサーチ: {keyword}",
+                title=title_text[:250],
                 description=f"キーワード「{keyword}」の競合・トレンド調査",
                 task_type="research",
                 assigned_agent=AgentRole.GROWTH,
@@ -117,9 +119,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         async with get_session() as session:
+            title_text = f"下書き: {platform} - {theme}"
             task = Task(
                 task_code=task_code,
-                title=f"下書き: {platform} - {theme}",
+                title=title_text[:250],
                 description=f"{platform}向け投稿下書き: {theme}",
                 task_type="content_draft",
                 assigned_agent=AgentRole.CONTENT,

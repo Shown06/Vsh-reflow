@@ -90,7 +90,8 @@ async def cmd_idea(interaction: discord.Interaction, theme: str):
         await interaction.followup.send(result["message"])
     except Exception as e:
         logger.error(f"❌ [Discord] /idea エラー: {e}", exc_info=True)
-        await interaction.followup.send(f"⚠️ エラーが発生しました: {e}")
+        error_msg = f"⚠️ エラーが発生しました: {e}"
+        await interaction.followup.send(error_msg[:1900])
 
 
 @bot.tree.command(name="research", description="競合・トレンド調査を指示")

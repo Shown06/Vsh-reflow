@@ -99,8 +99,13 @@ async def cmd_idea(interaction: discord.Interaction, theme: str):
 @app_commands.describe(keyword="調査キーワード")
 async def cmd_research(interaction: discord.Interaction, keyword: str):
     await interaction.response.defer()
-    result = await command_handler.handle_research(keyword, channel_id=str(interaction.channel_id))
-    await interaction.followup.send(result["message"])
+    try:
+        result = await command_handler.handle_research(keyword, channel_id=str(interaction.channel_id))
+        await interaction.followup.send(result["message"])
+    except Exception as e:
+        logger.error(f"❌ [Discord] /research エラー: {e}", exc_info=True)
+        error_msg = f"⚠️ エラーが発生しました: {e}"
+        await interaction.followup.send(error_msg[:1900])
 
 
 @bot.tree.command(name="draft", description="投稿下書き生成")
@@ -108,8 +113,13 @@ async def cmd_research(interaction: discord.Interaction, keyword: str):
 @app_commands.describe(platform="プラットフォーム (X, Instagram等)", theme="投稿テーマ")
 async def cmd_draft(interaction: discord.Interaction, platform: str, theme: str):
     await interaction.response.defer()
-    result = await command_handler.handle_draft(platform, theme, channel_id=str(interaction.channel_id))
-    await interaction.followup.send(result["message"])
+    try:
+        result = await command_handler.handle_draft(platform, theme, channel_id=str(interaction.channel_id))
+        await interaction.followup.send(result["message"])
+    except Exception as e:
+        logger.error(f"❌ [Discord] /draft エラー: {e}", exc_info=True)
+        error_msg = f"⚠️ エラーが発生しました: {e}"
+        await interaction.followup.send(error_msg[:1900])
 
 
 @bot.tree.command(name="image", description="画像生成を指示")
@@ -117,8 +127,13 @@ async def cmd_draft(interaction: discord.Interaction, platform: str, theme: str)
 @app_commands.describe(description="画像の説明")
 async def cmd_image(interaction: discord.Interaction, description: str):
     await interaction.response.defer()
-    result = await command_handler.handle_image(description, channel_id=str(interaction.channel_id))
-    await interaction.followup.send(result["message"])
+    try:
+        result = await command_handler.handle_image(description, channel_id=str(interaction.channel_id))
+        await interaction.followup.send(result["message"])
+    except Exception as e:
+        logger.error(f"❌ [Discord] /image エラー: {e}", exc_info=True)
+        error_msg = f"⚠️ エラーが発生しました: {e}"
+        await interaction.followup.send(error_msg[:1900])
 
 
 @bot.tree.command(name="approve", description="タスクを承認")
@@ -126,8 +141,13 @@ async def cmd_image(interaction: discord.Interaction, description: str):
 @app_commands.describe(task_code="タスクID")
 async def cmd_approve(interaction: discord.Interaction, task_code: str):
     await interaction.response.defer()
-    result = await command_handler.handle_approve(task_code)
-    await interaction.followup.send(result["message"])
+    try:
+        result = await command_handler.handle_approve(task_code)
+        await interaction.followup.send(result["message"])
+    except Exception as e:
+        logger.error(f"❌ [Discord] /approve エラー: {e}", exc_info=True)
+        error_msg = f"⚠️ エラーが発生しました: {e}"
+        await interaction.followup.send(error_msg[:1900])
 
 
 @bot.tree.command(name="reject", description="タスクを却下")
@@ -135,8 +155,13 @@ async def cmd_approve(interaction: discord.Interaction, task_code: str):
 @app_commands.describe(task_code="タスクID", reason="却下理由")
 async def cmd_reject(interaction: discord.Interaction, task_code: str, reason: str = ""):
     await interaction.response.defer()
-    result = await command_handler.handle_reject(task_code, reason)
-    await interaction.followup.send(result["message"])
+    try:
+        result = await command_handler.handle_reject(task_code, reason)
+        await interaction.followup.send(result["message"])
+    except Exception as e:
+        logger.error(f"❌ [Discord] /reject エラー: {e}", exc_info=True)
+        error_msg = f"⚠️ エラーが発生しました: {e}"
+        await interaction.followup.send(error_msg[:1900])
 
 
 @bot.tree.command(name="edit", description="修正指示を送信")
@@ -144,8 +169,13 @@ async def cmd_reject(interaction: discord.Interaction, task_code: str, reason: s
 @app_commands.describe(task_code="タスクID", instructions="修正指示")
 async def cmd_edit(interaction: discord.Interaction, task_code: str, instructions: str):
     await interaction.response.defer()
-    result = await command_handler.handle_edit(task_code, instructions)
-    await interaction.followup.send(result["message"])
+    try:
+        result = await command_handler.handle_edit(task_code, instructions)
+        await interaction.followup.send(result["message"])
+    except Exception as e:
+        logger.error(f"❌ [Discord] /edit エラー: {e}", exc_info=True)
+        error_msg = f"⚠️ エラーが発生しました: {e}"
+        await interaction.followup.send(error_msg[:1900])
 
 
 @bot.tree.command(name="status", description="システム稼働状態・コスト確認")

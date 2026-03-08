@@ -385,12 +385,11 @@ class CommandHandler:
     # -------------------------------------------
     async def handle_browse(self, url: str, channel_id: str = None) -> dict[str, Any]:
         """Webページを閲覧して要約"""
-        task_code = _generate_task_code()
-
         async with get_session() as session:
+            title_text = f"Web閲覧: {url}"
             task = Task(
                 task_code=task_code,
-                title=f"Web閲覧: {url[:50]}",
+                title=title_text[:200],
                 description=f"Webページを閲覧して要約: {url}",
                 task_type="browse",
                 assigned_agent=AgentRole.GROWTH,
@@ -457,9 +456,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         async with get_session() as session:
+            title_text = f"コード生成: {instruction}"
             task = Task(
                 task_code=task_code,
-                title=f"コード生成: {instruction[:50]}",
+                title=title_text[:200],
                 description=f"コード生成・実行: {instruction}",
                 task_type="code_generation",
                 assigned_agent=AgentRole.CONTENT,
@@ -512,9 +512,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         async with get_session() as session:
+            title_text = f"Webサイト生成: {description}"
             task = Task(
                 task_code=task_code,
-                title=f"Webサイト生成: {description[:50]}",
+                title=title_text[:200],
                 description=f"Webサイト生成: {description}",
                 task_type="website_generation",
                 assigned_agent=AgentRole.CONTENT,

@@ -113,12 +113,11 @@ class CommerceAgent(BaseAgent):
         # Browser-Agentにメルカリ検索を依頼
         try:
             from src.workers.celery_app import dispatch_agent_task
-            dispatch_agent_task.delay(
-                "browser", task_code, "scrape",
-                {
-                    "url": f"https://www.mercari.com/jp/search/?keyword={product_name}",
-                    "items": "商品名、価格、状態",
-                }
+            dispatch_agent_task.apply_async(
+                args=("browser", task_code, "scrape",
+                      {"url": f"https://www.mercari.com/jp/search/?keyword={product_name}",
+                       "items": "商品名、価格、状態"}),
+                queue="browser_queue"
             )
         except Exception as e:
             logger.debug(f"Browser-Agent連携スキップ: {e}")

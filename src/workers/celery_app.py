@@ -185,11 +185,10 @@ def trigger_heartbeat():
     logger.info(f"❤️ Heartbeat triggered: {task_code}")
     
     # 総合管理を行うPM-AgentにHeartbeatのコンテキスト評価を依頼する
-    dispatch_agent_task.delay(
-        "pm", 
-        task_code, 
-        "heartbeat", 
-        {"context": "Read HEARTBEAT.md if it exists. Evaluate current system state and notify if critical events exists. If nothing needs attention, just log HEARTBEAT_OK."}
+    dispatch_agent_task.apply_async(
+        args=("pm", task_code, "heartbeat",
+              {"context": "Read HEARTBEAT.md if it exists. Evaluate current system state and notify if critical events exists. If nothing needs attention, just log HEARTBEAT_OK."}),
+        queue="pm_queue"
     )
 
 

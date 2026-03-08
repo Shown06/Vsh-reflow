@@ -399,7 +399,6 @@ async def task_result_observer():
                         if "pdf_path" in res_data and res_data["pdf_path"]:
                             pdf_path = res_data["pdf_path"]
                             if os.path.exists(pdf_path):
-                                import discord
                                 await channel.send(
                                     content="📄 **【プレゼン資料】制作完了**\n会議の結果をまとめたPDF資料を作成しました。ダウンロードしてご確認ください。",
                                     file=discord.File(pdf_path)

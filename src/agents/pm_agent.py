@@ -205,12 +205,24 @@ class PMAgent(BaseAgent):
             import json
             import re
             slides_text = slides_result.get("text", "[]")
-            # JSON部分を抽出（LLMが解説を入れてしまった場合の対策）
-            match = re.search(r'\[.*\]', slides_text, re.DOTALL)
-            if match:
-                slides_data = json.loads(match.group())
-            else:
-                slides_data = [{"title": "エラー", "content": "スライドデータの生成に失敗しました"}]
+            try:
+                match = re.search(r'\[.*\]', slides_text, re.DOTALL)
+                if match:
+                    slides_data = json.loads(match.group())
+                    if not isinstance(slides_data, list) or not slides_data:
+                        raise ValueError("Empty or invalid slides list")
+                else:
+                    raise ValueError("No JSON array found in LLM response")
+            except (json.JSONDecodeError, ValueError) as e:
+                logger.warning(f"スライドJSON解析失敗 ({e}), フォールバック使用")
+                slides_data = [
+                    {"title": topic, "content": "会議の成果サマリー"},
+                    {"title": "リサーチ結果", "content": str(meeting_results.get("research", ""))[:500]},
+                    {"title": "コンテンツ案", "content": str(meeting_results.get("content_proposals", ""))[:500]},
+                    {"title": "デザイン案", "content": str(meeting_results.get("design_proposals", ""))[:500]},
+                    {"title": "リスク審査", "content": str(meeting_results.get("guard_review", ""))[:500]},
+                    {"title": "分析結果", "content": str(meeting_results.get("analysis", ""))[:500]},
+                ]
 
             # PDF生成
             output_dir = "/app/generated_reports"

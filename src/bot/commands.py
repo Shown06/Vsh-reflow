@@ -168,9 +168,10 @@ class CommandHandler:
             session.add(task)
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "design", task_code, "image_generation",
-            {"description": description}
+        dispatch_agent_task.apply_async(
+            args=("design", task_code, "image_generation",
+            {"description": description}),
+            queue="design_queue"
         )
 
         return {
@@ -190,7 +191,10 @@ class CommandHandler:
         if request:
             # 承認後、Pub-Agentに実行を指示
             from src.workers.celery_app import dispatch_agent_task
-            dispatch_agent_task.delay("pub", task_code, "execute_approved", {})
+            dispatch_agent_task.apply_async(
+            args=("pub", task_code, "execute_approved", {}),
+            queue="pub_queue"
+        )
 
             return {
                 "message": f"✅ 承認しました\n"
@@ -343,9 +347,10 @@ class CommandHandler:
 
         # PM-Agentに会議進行を指示
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "pm", meeting_code, "conduct_meeting",
-            {"topic": topic, "participants": participants}
+        dispatch_agent_task.apply_async(
+            args=("pm", meeting_code, "conduct_meeting",
+            {"topic": topic, "participants": participants}),
+            queue="pm_queue"
         )
 
         return {
@@ -400,7 +405,10 @@ class CommandHandler:
             session.add(task)
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay("browser", task_code, "browse", {"url": url})
+        dispatch_agent_task.apply_async(
+            args=("browser", task_code, "browse", {"url": url}),
+            queue="browser_queue"
+        )
 
         return {
             "task_code": task_code,
@@ -418,7 +426,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay("browser", task_code, "screenshot", {"url": url})
+        dispatch_agent_task.apply_async(
+            args=("browser", task_code, "screenshot", {"url": url}),
+            queue="browser_queue"
+        )
 
         return {
             "task_code": task_code,
@@ -435,9 +446,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "browser", task_code, "scrape",
-            {"url": url, "items": items}
+        dispatch_agent_task.apply_async(
+            args=("browser", task_code, "scrape",
+            {"url": url, "items": items}),
+            queue="browser_queue"
         )
 
         return {
@@ -470,9 +482,10 @@ class CommandHandler:
             session.add(task)
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "dev", task_code, "code_generation",
-            {"instruction": instruction, "language": language}
+        dispatch_agent_task.apply_async(
+            args=("dev", task_code, "code_generation",
+            {"instruction": instruction, "language": language}),
+            queue="dev_queue"
         )
 
         return {
@@ -492,9 +505,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "dev", task_code, "code_fix",
-            {"error": error_info}
+        dispatch_agent_task.apply_async(
+            args=("dev", task_code, "code_fix",
+            {"error": error_info}),
+            queue="dev_queue"
         )
 
         return {
@@ -525,9 +539,10 @@ class CommandHandler:
             session.add(task)
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "web", task_code, "website_generation",
-            {"description": description}
+        dispatch_agent_task.apply_async(
+            args=("web", task_code, "website_generation",
+            {"description": description}),
+            queue="web_queue"
         )
 
         return {
@@ -546,9 +561,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "web", task_code, "landing_page",
-            {"theme": theme}
+        dispatch_agent_task.apply_async(
+            args=("web", task_code, "landing_page",
+            {"theme": theme}),
+            queue="web_queue"
         )
 
         return {
@@ -565,9 +581,10 @@ class CommandHandler:
     async def handle_preview(self, project_code: str) -> dict[str, Any]:
         """プレビューURLを発行"""
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "deploy", project_code, "preview",
-            {"project_dir": f"/app/projects/{project_code}"}
+        dispatch_agent_task.apply_async(
+            args=("deploy", project_code, "preview",
+            {"project_dir": f"/app/projects/{project_code}"}),
+            queue="deploy_queue"
         )
 
         return {
@@ -581,9 +598,10 @@ class CommandHandler:
     async def handle_deploy(self, project_code: str) -> dict[str, Any]:
         """プロジェクトをデプロイ"""
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "deploy", project_code, "deploy_static",
-            {"project_dir": f"/app/projects/{project_code}", "task_code": project_code}
+        dispatch_agent_task.apply_async(
+            args=("deploy", project_code, "deploy_static",
+            {"project_dir": f"/app/projects/{project_code}", "task_code": project_code}),
+            queue="deploy_queue"
         )
 
         return {
@@ -600,9 +618,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "commerce", task_code, "listing_template",
-            {"product_name": product_name, "description": description}
+        dispatch_agent_task.apply_async(
+            args=("commerce", task_code, "listing_template",
+            {"product_name": product_name, "description": description}),
+            queue="commerce_queue"
         )
 
         return {
@@ -621,9 +640,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "commerce", task_code, "pricing_research",
-            {"product_name": product_name}
+        dispatch_agent_task.apply_async(
+            args=("commerce", task_code, "pricing_research",
+            {"product_name": product_name}),
+            queue="commerce_queue"
         )
 
         return {
@@ -646,9 +666,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "github", task_code, action,
-            {"repo": repo, **kwargs}
+        dispatch_agent_task.apply_async(
+            args=("github", task_code, action,
+            {"repo": repo, **kwargs}),
+            queue="github_queue"
         )
 
         action_labels = {
@@ -673,9 +694,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "github", task_code, "create_pr",
-            {"repo": repo, "title": title, "head": head, "base": base}
+        dispatch_agent_task.apply_async(
+            args=("github", task_code, "create_pr",
+            {"repo": repo, "title": title, "head": head, "base": base}),
+            queue="github_queue"
         )
 
         return {
@@ -694,9 +716,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "github", task_code, "create_issue",
-            {"repo": repo, "title": title, "body": body}
+        dispatch_agent_task.apply_async(
+            args=("github", task_code, "create_issue",
+            {"repo": repo, "title": title, "body": body}),
+            queue="github_queue"
         )
 
         return {
@@ -715,9 +738,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "github", task_code, "review_pr",
-            {"repo": repo, "pr_number": pr_number}
+        dispatch_agent_task.apply_async(
+            args=("github", task_code, "review_pr",
+            {"repo": repo, "pr_number": pr_number}),
+            queue="github_queue"
         )
 
         return {
@@ -736,9 +760,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "email", task_code, "send_email",
-            {"to": to, "subject": subject, "body": body}
+        dispatch_agent_task.apply_async(
+            args=("email", task_code, "send_email",
+            {"to": to, "subject": subject, "body": body}),
+            queue="email_queue"
         )
 
         return {
@@ -757,9 +782,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "email", task_code, "read_emails",
-            {"count": count, "unread_only": True}
+        dispatch_agent_task.apply_async(
+            args=("email", task_code, "read_emails",
+            {"count": count, "unread_only": True}),
+            queue="email_queue"
         )
 
         return {
@@ -777,9 +803,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "email", task_code, "draft_email",
-            {"purpose": purpose, "to_name": to_name}
+        dispatch_agent_task.apply_async(
+            args=("email", task_code, "draft_email",
+            {"purpose": purpose, "to_name": to_name}),
+            queue="email_queue"
         )
 
         return {
@@ -797,9 +824,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "saas", task_code, "google_sheets",
-            {"spreadsheet_id": spreadsheet_id, "action": action, "range": sheet_range}
+        dispatch_agent_task.apply_async(
+            args=("saas", task_code, "google_sheets",
+            {"spreadsheet_id": spreadsheet_id, "action": action, "range": sheet_range}),
+            queue="saas_queue"
         )
 
         return {
@@ -817,9 +845,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "saas", task_code, "notion",
-            {"query": query, "action": action}
+        dispatch_agent_task.apply_async(
+            args=("saas", task_code, "notion",
+            {"query": query, "action": action}),
+            queue="saas_queue"
         )
 
         return {
@@ -837,9 +866,10 @@ class CommandHandler:
         task_code = _generate_task_code()
 
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay(
-            "saas", task_code, "slack_message",
-            {"channel": channel, "text": text}
+        dispatch_agent_task.apply_async(
+            args=("saas", task_code, "slack_message",
+            {"channel": channel, "text": text}),
+            queue="saas_queue"
         )
 
         return {
@@ -860,7 +890,10 @@ class CommandHandler:
         """サイトSEO監査"""
         task_code = _generate_task_code()
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay("seo", task_code, "seo_audit", {"url": url})
+        dispatch_agent_task.apply_async(
+            args=("seo", task_code, "seo_audit", {"url": url}),
+            queue="seo_queue"
+        )
         return {
             "task_code": task_code,
             "message": f"🔍 SEO監査を開始しました\n📋 タスクID: {task_code}\n🔗 URL: {url}\n🤖 担当: SEO-Agent",
@@ -873,7 +906,10 @@ class CommandHandler:
         """キーワードリサーチ"""
         task_code = _generate_task_code()
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay("seo", task_code, "keyword_research", {"topic": topic})
+        dispatch_agent_task.apply_async(
+            args=("seo", task_code, "keyword_research", {"topic": topic}),
+            queue="seo_queue"
+        )
         return {
             "task_code": task_code,
             "message": f"🔎 キーワードリサーチを開始しました\n📋 タスクID: {task_code}\n🎯 トピック: {topic}",
@@ -886,7 +922,10 @@ class CommandHandler:
         """メタタグ最適化"""
         task_code = _generate_task_code()
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay("seo", task_code, "meta_optimize", {"url": url, "keyword": keyword})
+        dispatch_agent_task.apply_async(
+            args=("seo", task_code, "meta_optimize", {"url": url, "keyword": keyword}),
+            queue="seo_queue"
+        )
         return {
             "task_code": task_code,
             "message": f"🏷 メタタグ最適化を開始しました\n📋 タスクID: {task_code}\n🔗 URL: {url}",
@@ -899,7 +938,10 @@ class CommandHandler:
         """顧客追加"""
         task_code = _generate_task_code()
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay("crm", task_code, "add_contact", {"name": name, "email": email, "company": company})
+        dispatch_agent_task.apply_async(
+            args=("crm", task_code, "add_contact", {"name": name, "email": email, "company": company}),
+            queue="crm_queue"
+        )
         return {
             "task_code": task_code,
             "message": f"👤 顧客登録を開始しました\n📋 タスクID: {task_code}\n👤 名前: {name}",
@@ -912,7 +954,10 @@ class CommandHandler:
         """CRM操作"""
         task_code = _generate_task_code()
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay("crm", task_code, action, kwargs)
+        dispatch_agent_task.apply_async(
+            args=("crm", task_code, action, kwargs),
+            queue="crm_queue"
+        )
         return {
             "task_code": task_code,
             "message": f"📇 CRM操作を開始しました\n📋 タスクID: {task_code}\n📌 アクション: {action}",
@@ -925,7 +970,10 @@ class CommandHandler:
         """パイプラインレポート"""
         task_code = _generate_task_code()
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay("crm", task_code, "pipeline", {})
+        dispatch_agent_task.apply_async(
+            args=("crm", task_code, "pipeline", {}),
+            queue="crm_queue"
+        )
         return {
             "task_code": task_code,
             "message": f"📊 パイプラインレポート生成中\n📋 タスクID: {task_code}",
@@ -938,7 +986,10 @@ class CommandHandler:
         """LINE プッシュメッセージ"""
         task_code = _generate_task_code()
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay("line", task_code, "push_message", {"user_id": user_id, "message": message})
+        dispatch_agent_task.apply_async(
+            args=("line", task_code, "push_message", {"user_id": user_id, "message": message}),
+            queue="line_queue"
+        )
         return {
             "task_code": task_code,
             "message": f"📱 LINEメッセージ送信を開始しました\n📋 タスクID: {task_code}",
@@ -951,7 +1002,10 @@ class CommandHandler:
         """LINE ブロードキャスト"""
         task_code = _generate_task_code()
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay("line", task_code, "broadcast", {"message": message})
+        dispatch_agent_task.apply_async(
+            args=("line", task_code, "broadcast", {"message": message}),
+            queue="line_queue"
+        )
         return {
             "task_code": task_code,
             "message": f"📢 LINE一斉配信を開始しました\n📋 タスクID: {task_code}\n⚠️ 承認後に配信されます",
@@ -964,7 +1018,10 @@ class CommandHandler:
         """スケジュール確認"""
         task_code = _generate_task_code()
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay("schedule", task_code, "list_events", {"days": days})
+        dispatch_agent_task.apply_async(
+            args=("schedule", task_code, "list_events", {"days": days}),
+            queue="schedule_queue"
+        )
         return {
             "task_code": task_code,
             "message": f"📅 今後{days}日のスケジュール取得中\n📋 タスクID: {task_code}",
@@ -977,7 +1034,10 @@ class CommandHandler:
         """今日のスケジュール"""
         task_code = _generate_task_code()
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay("schedule", task_code, "daily_summary", {})
+        dispatch_agent_task.apply_async(
+            args=("schedule", task_code, "daily_summary", {}),
+            queue="schedule_queue"
+        )
         return {
             "task_code": task_code,
             "message": f"📅 今日のスケジュール取得中\n📋 タスクID: {task_code}",
@@ -990,7 +1050,10 @@ class CommandHandler:
         """経費追加"""
         task_code = _generate_task_code()
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay("finance", task_code, "add_expense", {"amount": amount, "category": category, "description": description})
+        dispatch_agent_task.apply_async(
+            args=("finance", task_code, "add_expense", {"amount": amount, "category": category, "description": description}),
+            queue="finance_queue"
+        )
         return {
             "task_code": task_code,
             "message": f"💸 経費を記録しました\n📋 タスクID: {task_code}\n💰 金額: ¥{amount:,}\n📁 カテゴリ: {category}",
@@ -1003,7 +1066,10 @@ class CommandHandler:
         """売上追加"""
         task_code = _generate_task_code()
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay("finance", task_code, "add_income", {"amount": amount, "source": source})
+        dispatch_agent_task.apply_async(
+            args=("finance", task_code, "add_income", {"amount": amount, "source": source}),
+            queue="finance_queue"
+        )
         return {
             "task_code": task_code,
             "message": f"💰 売上を記録しました\n📋 タスクID: {task_code}\n💴 金額: ¥{amount:,}",
@@ -1016,7 +1082,10 @@ class CommandHandler:
         """請求書生成"""
         task_code = _generate_task_code()
         from src.workers.celery_app import dispatch_agent_task
-        dispatch_agent_task.delay("finance", task_code, "create_invoice", {"client_name": client_name, **kwargs})
+        dispatch_agent_task.apply_async(
+            args=("finance", task_code, "create_invoice", {"client_name": client_name, **kwargs}),
+            queue="finance_queue"
+        )
         return {
             "task_code": task_code,
             "message": f"📄 請求書生成を開始しました\n📋 タスクID: {task_code}\n🏢 クライアント: {client_name}",

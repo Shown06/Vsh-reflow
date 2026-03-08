@@ -101,33 +101,33 @@ class PMAgent(BaseAgent):
         from src.workers.celery_app import dispatch_agent_task
 
         # Growth-Agentにリサーチ指示
-        dispatch_agent_task.delay(
-            "growth", task_code, "meeting_research",
-            {"topic": topic, "meeting_code": task_code}
+        dispatch_agent_task.apply_async(
+            args=("growth", task_code, "meeting_research", {"topic": topic, "meeting_code": task_code}),
+            queue="growth_queue"
         )
 
         # Content-Agentに3案作成指示
-        dispatch_agent_task.delay(
-            "content", task_code, "meeting_content",
-            {"topic": topic, "meeting_code": task_code, "num_proposals": 3}
+        dispatch_agent_task.apply_async(
+            args=("content", task_code, "meeting_content", {"topic": topic, "meeting_code": task_code, "num_proposals": 3}),
+            queue="content_queue"
         )
 
         # Design-Agentにデザインプロンプト作成指示
-        dispatch_agent_task.delay(
-            "design", task_code, "meeting_design",
-            {"topic": topic, "meeting_code": task_code}
+        dispatch_agent_task.apply_async(
+            args=("design", task_code, "meeting_design", {"topic": topic, "meeting_code": task_code}),
+            queue="design_queue"
         )
 
         # Guard-Agentにリスク審査指示
-        dispatch_agent_task.delay(
-            "guard", task_code, "meeting_review",
-            {"topic": topic, "meeting_code": task_code}
+        dispatch_agent_task.apply_async(
+            args=("guard", task_code, "meeting_review", {"topic": topic, "meeting_code": task_code}),
+            queue="guard_queue"
         )
 
         # Analyst-Agentに分析・推薦指示
-        dispatch_agent_task.delay(
-            "analyst", task_code, "meeting_analysis",
-            {"topic": topic, "meeting_code": task_code}
+        dispatch_agent_task.apply_async(
+            args=("analyst", task_code, "meeting_analysis", {"topic": topic, "meeting_code": task_code}),
+            queue="analyst_queue"
         )
 
         return {
